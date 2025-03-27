@@ -17,8 +17,8 @@
 - **Pub/Sub technology**: Enables deep sleep mode on the device to conserve energy
 - Compatible with TTN
 - MQTT broker options: **HiveMq** (https://www.hivemq.com/blog/integrating-esp32-lorawan-hivemq-mqtt-broker-advanced-iot/) 
-  --> Public HiveMQ MQTT broker (Broker: broker.hivemq.com, TCP Port: 1883, Websocket Port: 8000, TLS TCP Port: 8883, TLS Websocket Port: 8884)
-  --> It has it's own API to retrieve data and send to a database/application (GPS data, battery statistics, route history...)
+  - Public HiveMQ MQTT broker (Broker: broker.hivemq.com, TCP Port: 1883, Websocket Port: 8000, TLS TCP Port: 8883, TLS Websocket Port: 8884)
+  - It has it's own API to retrieve data and send to a database/application (GPS data, battery statistics, route history...)
 ---
 
 ### Backend
