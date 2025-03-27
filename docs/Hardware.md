@@ -4,8 +4,9 @@
 To set a foundation for the project, a simple circuit needs to be built for every team to use
 - ESP32
 - Button
-- Battery
+- Battery (it has to be in the range between 3.3V and 4.?)
 - Visual/audible warning (LED or beep-thingy)
+- be careful with matching the voltage of the different devices (e.g, GNSS module could require too much power from the ESP-Lora Module, careful)
 
 ---
 
