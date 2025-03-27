@@ -4,7 +4,7 @@
 
 - **HT-CT62 ESP32C3 SX1262 LoRa Nodemodule Bluetooth LoRaWAN Node**
 - Low latency and low energy consumption
-- TTN (The Things Network) for network coverage in Denmark
+- **TTN** (The Things Network) or **Chirpstack** for network coverage in Denmark
 - Bidirectional communication (bike <-> backend app/dashboard IoT)
 
 ---
@@ -16,7 +16,7 @@
 - **Quality of Service (QoS)** support: Provides flexibility on message delivery
 - **Pub/Sub technology**: Enables deep sleep mode on the device to conserve energy
 - Compatible with TTN
-- MQTT broker options (to decide: **Mosquitto**?)
+- MQTT broker options (to decide: **HiveMq** or **Mosquitto**?)
 
 ---
 
