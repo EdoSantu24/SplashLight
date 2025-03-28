@@ -2,7 +2,7 @@
 
 ### Communication Technology: LoRaWAN
 
-- **HT-CT62 ESP32C3 SX1262 LoRa Nodemodule Bluetooth LoRaWAN Node**
+- **HT-CT62 ESP32C3 SX1262 LoRa Nodemodule Bluetooth LoRaWAN Node** (https://docs.heltec.cn/en/node/esp32/ht_ct62/index.html)
 - Low latency and low energy consumption
 - **TTN** (or **Chirpstack**) for network coverage in Denmark: support MQTT broker (HiveMQ)
 - Bidirectional communication (light <-> LoreWAN gateways <-> MQTT broker)
