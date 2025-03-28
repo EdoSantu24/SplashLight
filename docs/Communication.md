@@ -9,15 +9,18 @@
 
 ---
 
-### Communication Protocol: MQTT
+### Communication Protocol for backend: MQTT
 
 - Supports bidirectional communication (backend app/dashboard IoT <-> MQTT broker)
 - Energy efficient and low latency
 - **Quality of Service (QoS)** support: Provides flexibility on message delivery
 - **Pub/Sub technology**: Enables deep sleep mode on the device to conserve energy
 - Compatible with TTN
-- MQTT broker options: **HiveMq** (https://www.hivemq.com/blog/integrating-esp32-lorawan-hivemq-mqtt-broker-advanced-iot/) 
-  - Public HiveMQ MQTT broker (Broker: broker.hivemq.com, TCP Port: 1883, Websocket Port: 8000, TLS TCP Port: 8883, TLS Websocket Port: 8884)
+- MQTT broker options: **HiveMq**
+  - Integrating ESP32 with LoRaWAN and HiveMQ MQTT Broker: https://www.hivemq.com/blog/integrating-esp32-lorawan-hivemq-mqtt-broker-advanced-iot/
+  - LoRaWAN and MQTT Integration for IoT Application Design:  https://www.hivemq.com/blog/lorawan-and-mqtt-integrations-for-iot-applications-design/
+  - Hands-on Guide to LoRaWAN and HiveMQ MQTT Broker Integration for IoT: https://www.hivemq.com/blog/handson-guide-lorawan-hivemq-mqtt-broker-integration-iot/
+  - Creating a private MQTT Broker with HiveMQ
   - It has it's own API to retrieve data and send to a database/application (GPS data, battery statistics, route history...)
 ---
 
