@@ -1,51 +1,45 @@
-
-
-#include "GY521.h"
+//I2C
 #include <Wire.h>
-//https://github.com/RobTillaart/GY521
-//https://docs.arduino.cc/language-reference/en/functions/communication/wire/
-
 #define SDA_PIN 21
 #define SCL_PIN 22
+//https://docs.arduino.cc/language-reference/en/functions/communication/wire/
 
+//The accelerometer
+#include "GY521.h"
 GY521 accelo(0x68);
+//https://github.com/RobTillaart/GY521
+
+//LCD (testbench)
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27,16,2);
 
 //photoresistor
-//https://projecthub.arduino.cc/tropicalbean/how-to-use-a-photoresistor-1143fd
 #define PHOTO_RES_1 34
 #define PHOTO_RES_2 12
+//https://projecthub.arduino.cc/tropicalbean/how-to-use-a-photoresistor-1143fd
 
 
 //TP4056 (charger module) 
   //it has no library. however you may use its outputs to tell the arduino if the device is charging or not
   //you can use mosfets to control the charging - so that it stops charging when battery is fully charged.
 
-#include <LiquidCrystal_I2C.h>
-
-LiquidCrystal_I2C lcd(0x27,16,2);
-char msg[75];
-char rec[75];
-unsigned long lastMsg = 0;
-char in_message[100]; //used to move incoming message into main loop if needed
-
+char in_message[100]; //used to pass message to print between functions
 
 void setup() {
-  //"TESTBENCH":
   Serial.begin(115200);
-  Serial.println("HOWDY0");
+  Wire.begin();
+  //TESTBENCH:
   /*###########
     SETUP LCD #
   *///###########
-
   lcd.begin();
   lcd.clear();
   lcd.backlight();      // Make sure backlight is on
+  
   //SENSORS:
-
   /*#####################
     SETUP Accelerometer #
-  *///#####################
-  Wire.begin();                
+  *///#####################                
   accelo.begin();
   if(accelo.isConnected()){
     Serial.println("gy521 online");
@@ -72,22 +66,18 @@ void setup() {
   /*#########################################
     SETUP 03962a Ion battery charger module #
   *///#########################################
+  //TBD
 
 }
 
-//"TESTBENCH":
-
 /*##############
-  FUNCTION LCD #
+  FUNCTIONS LCD #
 *///##############
 
   //convert to compatible text
   
   //write text.
-void write_text(byte* payload, unsigned int length) {
-
-  
-    // debugging message at serial monitor 
+void write_text(byte* payload, unsigned int length) {  
   Serial.println("<Message arrived>"); 
   Serial.print("\t");
   lcd.clear();
@@ -249,3 +239,24 @@ void loop() {
   
 
 }
+
+
+/*!TO DO LIST:
+----
+!!THIS WEEK!!
+MAKE INTERFACE WITH SENSORS (DONE)
+MAKE FUNCTIONS WHICH RETURN "MOVING" AND "LIT" -BASED UPON READINGS (TBD) (Could you do this Oskar?)
+----
+!!NEXT WEEK!!
+MAKE "ENABLE SENSOR" FUNCTIONS 
+  MAKE CALLS TO "ENABLE SENSOR" FUNCTION, WHICH CORRESPONDS TO THE DIFFERENT OPERATIONAL MODES.
+MAKE THRESHOLD FUN
+HOW TO HANDLE IT BEING AT A STOP LIGHT
+HOW TO HANDLE TURN ON WHEN MOVED IN STORAGE MODE
+HOW TO HANDLE TURN ON WHEN MOVED IN PARKED MODE
+
+
+
+
+
+*/
