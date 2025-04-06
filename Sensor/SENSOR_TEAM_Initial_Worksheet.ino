@@ -1,5 +1,10 @@
 /*This implementation uses the new pin-setup. here is my attempt at explaining:
 //NOTE: transistors are PN 2222A 901 - At least thats the ones i used (unsure if they had 901 at the end)
+//NOTE: (FOR !!!OSKAR!!!): It seems that the transistor does not make this system work. 
+  //we instead need to use MOSFET's instead of transistors. 
+  //(THEREFORE PLEASE JUST CONNECT PHOTORESISTORS AND THE VCC OF ACCELEROMETER AND THE VCC OF LCD SCREEN TO THE VCC_TRACK_1 INSTEAD!
+
+//MESSAGE FOR OSKAR ABOVE (TL:DR: DO NOT USE TRANSISTORS. JUST CONNECT VCC TO VCC ON SENSORS)
 ||<VCC>
 VIN --> VCC_TRACK_1
 
