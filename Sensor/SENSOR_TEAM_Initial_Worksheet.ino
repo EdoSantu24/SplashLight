@@ -1,5 +1,48 @@
+/*This implementation uses the new pin-setup. here is my attempt at explaining:
+//NOTE: transistors are PN 2222A 901 - At least thats the ones i used (unsure if they had 901 at the end)
+||<VCC>
+VIN --> VCC_TRACK_1
+
+||<GND>
+GND --> GND_TRACK_1
+
+||<SDA+SCL (ESP32)>
+#define SDA_PIN 21
+#define SCL_PIN 22
+D21 --> VCC_TRACK_2
+D22 --> GND_TRACK_2
+
+||<PHOTORESISTOR>
+#define PHOTO_RES_1 34
+#define TURN_ON_PHOTORESISTOR_PIN 26
+VCC_TRACK_1 --> TRANSISTOR_PIN_1(FLAT_SIDE,LEFT) -- TRANSISTOR_PIN_3(FLAT_SIDE,RIGHT) --> PhotoRES(either_end)-->D34
+                                                                                      L-->RES->GND_TRACK_1 //ENABLES PULLDOWN
+D26 --> TRANSISTOR_PIN_2(MIDDLE)
+
+||<Accelerometer>
+#define TURN_ON_ACCELEROMETER_PIN 27
+GND_TRACK_1 --> GND(ACCELEROMETER)
+VCC_TRACK_1 --> TRANSISTOR_PIN_1(FLAT_SIDE,LEFT) -- TRANSISTOR_PIN_3(FLAT_SIDE,RIGHT) --> VCC(ACCELEROMETER)
+D27 --> TRANSISTOR_PIN_2(MIDDLE)
+SDA(ACCELEROMETER) --> VCC_TRACK_2
+SCL(ACCELEROMETER) --> GND_TRACK_2
+
+||<LCD>
+//NOTE: This one does not work in the current setup - more details are given later in this file.
+#define TURN_ON_LCD_PIN 13 
+GND_TRACK_1 --> GND(LCD)
+VCC_TRACK_1 --> TRANSISTOR_PIN_1(FLAT_SIDE,LEFT) -- TRANSISTOR_PIN_3(FLAT_SIDE,RIGHT) --> VCC(LCD)
+D13 --> TRANSISTOR_PIN_2(MIDDLE)
+SDA(LCD) --> VCC_TRACK_2
+SCL(LCD) --> GND_TRACK_2
+                    
+
+
+*/
+
 //I2C
 #include <Wire.h>
+//Not really used - but those are the Dx pins which correspond to SDA and SCL
 #define SDA_PIN 21
 #define SCL_PIN 22
 //https://docs.arduino.cc/language-reference/en/functions/communication/wire/
@@ -27,10 +70,16 @@ char in_message[100]; //used to pass message to print between functions
 
 
 // the following pins turn on and off power for the different sensors.
-#define TURN_ON_ALL_SENSORS_PIN 13
-#define TURN_ON_LCD_PIN 13
-#define TURN_ON_ACCELEROMETER_PIN 27
-#define TURN_ON_PHOTORESISTOR_PIN 26
+  /*this pin seems not to work - or rather, i cannot make the LCD an entity that can be enabled and disabled
+  'also, if you power it directly using VCC, then the accelerometer will ALWAYS be on
+  */
+  #define TURN_ON_LCD_PIN 13 
+  //turns on the accelerometer. I used  PN 2222A 901 Transistors, - flat side, left to right, 1 = emitter, 2 = base, 3 = collector 
+  //https://www.alldatasheet.com/datasheet-pdf/view/18722/PHILIPS/PN2222A.html
+  #define TURN_ON_ACCELEROMETER_PIN 27
+  #define TURN_ON_PHOTORESISTOR_PIN 26
+
+int wire_begin = 0; // relevant for setup_sensors()
 /**
 This function will enable sensors according to the input bitmask
   bit 0 (0x01)1 = I2C (needed for LCD and  accelerometer)
@@ -41,7 +90,6 @@ This function will enable sensors according to the input bitmask
   bit 5 (0x20)32 = will assume that LCD has already been enabled 
   bit 6 (0x40)64 = will assume that accelerometer has already been calibrated  
 */
-int wire_begin = 0;
 void setup_sensors(int bitmask){
   //Wire.begin is done here - and only once, because if its set to begin - even after Wire.end(), then the whole ESP32 softlocks.
   if(wire_begin == 0){
@@ -53,7 +101,7 @@ void setup_sensors(int bitmask){
     Serial.println("UUUUUUUUUUUUUUUUUHHHHHHHHHHHHHHHH");
      //Wire.begin(); // Seems to softlock the entire system when called more than once: 
   } // the turn off wire will occur at end of this function
-  
+  //---//
   //LCD enable
   if(bitmask & 2 && (bitmask & 32) == 0){
     Serial.println("UUUUUUUUUUUUUUUUUHHHHHHHHHHHHHHHH");
@@ -70,7 +118,7 @@ void setup_sensors(int bitmask){
     //lcd.end(); //not a function
     digitalWrite(TURN_ON_LCD_PIN,LOW);
   }
-
+  //---//
   //Accelerometer enable
   if(bitmask & 4 && (bitmask & 64) == 0){
         Serial.println("UUUUUUUUUUUUUUUUUHHHHHHHHHHHHHHHH");
@@ -93,7 +141,7 @@ void setup_sensors(int bitmask){
     accelo.reset();
     digitalWrite(TURN_ON_ACCELEROMETER_PIN,LOW);
   }
-
+  //---//
   //photoresistor enanble/disable
   if(bitmask & 8){
 
@@ -102,19 +150,14 @@ void setup_sensors(int bitmask){
   else {
     digitalWrite(TURN_ON_PHOTORESISTOR_PIN,LOW);
   }
-
+  //---//
   //disable I2C - deprecated because Wire softlocks if Wire.begin() is called more than once.
   if((bitmask & 1) == 0 && bitmask & 16){
     Serial.println("AAAAAAAAAAAAAAAAAAHHHHHHHHHH");
     //Wire.end();
   }
 
-  //this delay might be unnecessary
-  Serial.println("DONE with setting up sensors!");
-  Serial.println((bitmask & 4));
-  Serial.println((bitmask & 4) == 0);
-  Serial.println( bitmask & 64);
-  Serial.println((bitmask & 4) == 0 && bitmask & 64);
+  //this delay is unnecessary
   delay(1000);
 }
 
@@ -160,7 +203,7 @@ void operational_sensor_setup_calls(int operational_mode){
 
 }
 
-
+//--SETUP--//
 
 void setup() {
   
@@ -172,51 +215,6 @@ void setup() {
   pinMode(PHOTO_RES_1,INPUT);
   //with pins enabled, we may start the sensors (NOTE THAT: out of deep sleep, i know not how exactly we should set the startup of the accelerometer: we might not have to recalibrate it, if it was turned on during deep sleep)
   setup_sensors(8 + 4 + 2 + 1);
-  //the below is old setup function
-  if(0){
-    Wire.begin();
-    //TESTBENCH:
-    /*###########
-      SETUP LCD #
-    *///###########
-    lcd.begin();
-    lcd.clear();
-    lcd.backlight();      // Make sure backlight is on
-  
-    //SENSORS:
-    /*#####################
-      SETUP Accelerometer #
-    *///#####################                
-    accelo.begin();
-    if(accelo.isConnected()){
-      Serial.println("gy521 online");
-    }
-    delay(1000);
-    if(accelo.isConnected()){
-      Serial.println("gy521 online");
-    }
-    Serial.println("HOWDY1");
-    accelo.calibrate(100,0,0,false);
-    accelo.setAccelSensitivity(0);
-    accelo.setGyroSensitivity(0);
-    accelo.setNormalize(false);
-    accelo.setThrottle();
-    /*##############################
-    SETUP pins for Photoresistor #
-    *///##############################
-    pinMode(PHOTO_RES_1,INPUT);
-    //NON-SENSORS:
-
-    /*#########################################
-      SETUP 03962a Ion battery charger module #
-    *///#########################################
-    //TBD
-  }
-  
-  
-
-  
-
 }
 
 /*##############
@@ -283,15 +281,22 @@ void float_to_string_simpl(float input){
   
 }
 
+/**
+this function gets the accelerometers data and prints it
+*/
 void print_accelometer_res(){
   Serial.println("<print accelometer>"); 
+  //the orientation compared to gravity
   float ax = accelo.getAngleX();
   float ay = accelo.getAngleY();
   float az = accelo.getAngleZ();
+  //have no idea why this is a feature
   float temp = accelo.getTemperature();
+  //the acceleration - change in movement.
   float gx = accelo.getGyroX();
   float gy = accelo.getGyroY();
   float gz = accelo.getGyroZ();
+  //print all data - because floats a tad annoying (especially when printing on LCD)
   float_to_string_simpl(ax);
   float_to_string_simpl(ay);
   float_to_string_simpl(az);
@@ -299,6 +304,7 @@ void print_accelometer_res(){
   float_to_string_simpl(gx);
   float_to_string_simpl(gy);
   float_to_string_simpl(gz);
+  //new line, because the above calls make no new line.
   Serial.println("");
 
 }
@@ -308,7 +314,7 @@ void print_accelometer_res(){
 /*########################
   FUNCTION Accelerometer #
 *///########################
-
+//FOR THIS ONE: CHECK THE print_accelometer_res() FUNCTION!
   //function for read data
 
   //modify threshold
@@ -320,7 +326,7 @@ void print_accelometer_res(){
 /*#################################
   FUNCTION pins for Photoresistor #
 *///#################################
-
+//FOR THIS ONE: you litterally just perform analog read on the appropiate pin
   //read data
 
   //modify threshold.
@@ -334,7 +340,7 @@ void print_accelometer_res(){
 /*############################################
   FUNCTION 03962a Ion battery charger module #
 *///############################################
-
+//NOT OUR PROBLEM (Sensor team).
   //read charge
 
   //modify charging strength
@@ -357,31 +363,32 @@ void loop() {
   iter++;
   Serial.print("iter is:");
   Serial.println(iter);
-  //the first cycle, the sensors are turned on, the next  
+  //the first cycle, the sensors are turned on.
   if(iter >= 2){
-    
+    //keep the sensor on - tests if "is already on" works
     if(iter > 5){
       setup_sensors(64 + 32 + 16 + 8 + 4 + 2 + 1);
-    }
+    }// the below: this turns sensors back on
     else if (iter == 5){
       setup_sensors(8 + 4 + 2 + 1);
-    }
+    }// the below: this turns sensors off
     else if (iter == 2) {
       setup_sensors(64 + 32 + 16);
-    }
+    }//keep the sensor off - ensure that it wont try to turn off sensors that are already turned off
     else{
       setup_sensors(0);
     }
   }
-
-  Serial.println("HOWDY2");
+  //print string on LCD.
   String hello = "hello there";
   hello.toCharArray(in_message, 100);
   write_text((byte*)in_message,hello.length());
   delay(1000);
+  //turn int to string for LCD.
   int len = int_to_text(12456);
   write_text((byte*)in_message,len);
   delay(1000);
+  //READ accelo's data
   accelo.read();
   float ax = accelo.getAngleX();
   float ay = accelo.getAngleY();
@@ -396,15 +403,18 @@ void loop() {
   Serial.println("");
   Serial.print(gx); Serial.print("|");Serial.print(gy); Serial.print("|");Serial.print(gz); Serial.print("|");
   Serial.println("");
+  //Now try to read accelometer, and write it on the LCD.
   clear_lcd();
   print_accelometer_res();
   delay(3000);
+  //Read photoresistor and print on LCD
   int light = analogRead(PHOTO_RES_1);
   Serial.print("light strength: ");
   Serial.println(light);
   len = int_to_text(light);
   write_text((byte*)in_message,len);
   delay(1000);
+  //Split this iterations output from future iterations.
   Serial.println("-----------------------");
 
 
