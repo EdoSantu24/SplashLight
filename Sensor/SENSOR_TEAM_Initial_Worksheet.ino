@@ -73,7 +73,11 @@ LiquidCrystal_I2C lcd(0x27,16,2);
 
 char in_message[100]; //used to pass message to print between functions
 
-
+//Accelerometer values:
+float accelThreshold = 0.2;  //in m/s²
+unsigned long timeoutAccel = 30000; //30 sec timeout 
+unsigned long lastMovementTime = 0;
+bool isMoving = false;
 // the following pins turn on and off power for the different sensors.
   /*this pin seems not to work - or rather, i cannot make the LCD an entity that can be enabled and disabled
   'also, if you power it directly using VCC, then the accelerometer will ALWAYS be on
@@ -321,12 +325,91 @@ void print_accelometer_res(){
 *///########################
 //FOR THIS ONE: CHECK THE print_accelometer_res() FUNCTION!
   //function for read data
-
+struct AccelData {
+  float ax, ay, az;  // Acceleration (m/s²)
+  float gx, gy, gz;  // Gyro (deg/s)
+  float angleX, angleY, angleZ; // Angles
+};
+AccelData readAccelerometerData() {
+  //jeg laver en struct der holder alt informationen. Bruger kun ax ay tho.
+  AccelData data;
+  accelo.read();
+  
+  data.ax = accelo.getAccelX();
+  data.ay = accelo.getAccelY();
+  data.az = accelo.getAccelZ();
+  
+  data.gx = accelo.getGyroX();
+  data.gy = accelo.getGyroY();
+  data.gz = accelo.getGyroZ();
+  
+  data.angleX = accelo.getAngleX();
+  data.angleY = accelo.getAngleY();
+  data.angleZ = accelo.getAngleZ();
+  
+  return data;
+}
   //modify threshold
-
+void setAccelerometerThresholds(float newThreshhold, float newTimeout){
+  //opdatere threshholds
+  accelThreshold = newThreshhold;
+  idleTimeout = newTimeout;
+  Serial.print("New thresholds set - Accel: ");
+  Serial.print(accelThreshold);
+  Serial.print("Idle timeout: ");
+  Serial.print(idleTimeout/1000);
+  Serial.println("s");
+  }
   //react to sufficient threshold of accelerometer
+bool checkMovementThreshold(AccelData data){
+  unsigned long previousTime = 0;
+  //funktionen returnere true når farten er mindre end threshhold altså at den holder stille.
+  //jeg regner ecludian distance ud for at få hastigheden i et 2d space. Bruger ikke z da jeg tænker ikke den er sp
+  float speedDiff  = sqrt(sq(data.ax) + sq(data.ay));
+  if(speedDiff > accelThreshold){
+    return true;
+  }
+  else {
+    return false;
+  }
+}
+void reactToMovement() {
+  //hvis der er bevægelse fra stille stand
+  if (!isMoving) {
+    isMoving = true;
+    lastMovementTime = millis();
+    
+    // Actions when movement starts
+    Serial.println("Movement detected!");
+  } else {
+    // Update last movement time
+    lastMovementTime = millis();
+  }
+}
+void reactToIdle() {
+  //hvis der er stille stand i længere end threshhold
+  if (isMoving) {
+    isMoving = false;
+    
+    unsigned long idleDuration = (millis() - lastMovementTime) / 1000;
+    Serial.print("Bike idle for ");
+    Serial.print(idleDuration);
+    Serial.println(" seconds");
+  }
+}
 
-  //react to stop of accelerometer change - enable timer or count, so that it will tally whenever the bike is likely to be idle
+
+void monitorAccelerometer() {
+  AccelData currentData = readAccelerometerData();
+  //holder øje med hvor lang tid vi har været stille
+  if (checkMovementThreshold(currentData)) {
+    reactToMovement();
+  } 
+  //hvis den er stille stående og den har været det i idleTImeout (30 sec default ) så reagere på idle
+  else if (millis() - lastMovementTime > idleTimeout) {
+    reactToIdle();
+  }
+}
 
 /*#################################
   FUNCTION pins for Photoresistor #
@@ -421,7 +504,8 @@ void loop() {
   delay(1000);
   //Split this iterations output from future iterations.
   Serial.println("-----------------------");
-
+//accelerometer koden
+  monitorAccelerometer();
 
 }
 
