@@ -75,9 +75,16 @@ char in_message[100]; //used to pass message to print between functions
 
 //Accelerometer values:
 float accelThreshold = 0.2;  //in m/s²
-unsigned long timeoutAccel = 30000; //30 sec timeout 
+unsigned long idleTimeout = 30000; //30 sec timeout 
 unsigned long lastMovementTime = 0;
 bool isMoving = false;
+
+
+struct AccelData {
+  float ax, ay, az;  // Acceleration (m/s²)
+  float gx, gy, gz;  // Gyro (deg/s)
+  float angleX, angleY, angleZ; // Angles
+};
 // the following pins turn on and off power for the different sensors.
   /*this pin seems not to work - or rather, i cannot make the LCD an entity that can be enabled and disabled
   'also, if you power it directly using VCC, then the accelerometer will ALWAYS be on
@@ -325,11 +332,7 @@ void print_accelometer_res(){
 *///########################
 //FOR THIS ONE: CHECK THE print_accelometer_res() FUNCTION!
   //function for read data
-struct AccelData {
-  float ax, ay, az;  // Acceleration (m/s²)
-  float gx, gy, gz;  // Gyro (deg/s)
-  float angleX, angleY, angleZ; // Angles
-};
+
 AccelData readAccelerometerData() {
   //jeg laver en struct der holder alt informationen. Bruger kun ax ay tho.
   AccelData data;
