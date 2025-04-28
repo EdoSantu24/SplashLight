@@ -39,18 +39,23 @@ void setup() {
 }
 
 void loop() {
-  if (mode == 0) {  // Active mode
+if (mode == 0) {  // Active mode
     // Turn on all sensors
     digitalWrite(TURN_ON_ACCELEROMETER_PIN, LOW);
     digitalWrite(TURN_ON_PHOTORESISTOR_PIN, LOW);
     
     if (isMovingNow()) {
+      // Movement detected, remain in active mode
       reactToMovement();
       print_accelometer_res();   
 
       int light = readPhotoresistor();
       Serial.print("Light strength: ");
       Serial.println(light);
+    } else {
+      // No movement detected, switch to parking mode
+      mode = 1;
+      Serial.println("No movement detected! Switching to parking mode.");
     }
   }
   else if (mode == 1) {  // Park mode
