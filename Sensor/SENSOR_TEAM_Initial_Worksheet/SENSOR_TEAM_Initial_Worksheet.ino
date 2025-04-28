@@ -7,9 +7,13 @@
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 #define TURN_ON_LCD_PIN 13
 
+#define SDA_PIN 21
+#define SCL_PIN 22
+
 char in_message[100]; // Used to pass message to print between functions
 
 void setup_sensors(int bitmask) {
+    Wire.begin();
   // Implementation remains the same, but now uses the separate sensor setup functions
   if(bitmask & 4 && (bitmask & 64) == 0) {
     setupAccelerometer();
@@ -33,6 +37,6 @@ void loop() {
   Serial.println(light);
   
   monitorAccelerometer();
-  
+  print_accelometer_res();
   delay(1000);
 }

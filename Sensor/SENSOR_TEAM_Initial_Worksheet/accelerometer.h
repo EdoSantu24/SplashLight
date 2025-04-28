@@ -1,7 +1,7 @@
 #ifndef ACCELEROMETER_H
 #define ACCELEROMETER_H
 
-#include <Wire.h>
+
 #include "GY521.h"
 
 // Accelerometer pin
@@ -28,5 +28,6 @@ bool checkMovementThreshold(AccelData data);
 void reactToMovement();
 void reactToIdle();
 void monitorAccelerometer();
+void print_accelometer_res();
 
 #endif

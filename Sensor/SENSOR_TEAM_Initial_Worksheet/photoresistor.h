@@ -1,3 +1,5 @@
+
+
 #ifndef PHOTORESISTOR_H
 #define PHOTORESISTOR_H
 
