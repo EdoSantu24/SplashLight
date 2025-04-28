@@ -6,7 +6,7 @@
  ******************************************/
 
 #include "pitches.h"
-#define SOUND_PIN 23
+#define SOUND_PIN 25
  
 // notes in the melody:
 int melody[] = 
@@ -31,3 +31,25 @@ void loop() {
   // restart after two seconds 
   delay(2000);
 }
+
+// // Define pin for buzzer
+// const int buzzerPin = 25; // you can change this to any free GPIO pin
+
+// void setup() {
+//   // Setup PWM for the buzzer
+//   ledcSetup(0, 2000, 8);  // Channel 0, 2000 Hz frequency, 8-bit resolution
+//   ledcAttachPin(buzzerPin, 0); // Attach buzzerPin to channel 0
+// }
+
+// void loop() {
+//   // Play tone
+//   ledcWrite(0, 128); // 50% duty cycle (range 0-255)
+
+//   delay(500); // sound for 500 ms
+
+//   // Stop tone
+//   ledcWrite(0, 0); // 0% duty cycle (silent)
+
+//   delay(500); // silent for 500 ms
+// }
+

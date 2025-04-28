@@ -1,6 +1,7 @@
 // Libraries
 #include <WiFi.h>
 #include <Wire.h>
+#include <pitches.h>
 // #include <LoRa.h> // Uncomment if using LoRa
 // #include <Adafruit_Sensor.h> // Example for accelerometer
 // #include <Adafruit_LIS3DH.h> // Example accelerometer
@@ -22,15 +23,6 @@ const float ADC_CORRECTION = 0.8;  // Calibration factor
 // Variables
 bool active = false;
 bool parked = true;
-
-enum IncomingMessageType {
-  noMessage,
-  appToActiveMode,
-  appToParkMode,
-  appToStorageMode,
-  appBatteryUpdate,
-  appLocationUpdate
-};
 
 void setup() {
   // Set up Serial
@@ -89,6 +81,7 @@ void activeMode() {
         playCriticalBatteryWarning();
         sendBatteryWarning();
         lastWarningAct = millis();
+      }
     }
 
     bool lightDetected = checkLight() ;
@@ -107,7 +100,7 @@ void activeMode() {
           Serial.println("Movement detected, resetting active mode.");
           break;
         }
-        checkIncomingMessage() 
+        checkIncomingMessage();
         delay(3000); // Check every 3 seconds
       }
       if (!movementDetected()) {
@@ -136,7 +129,7 @@ void parkingMode() {
     if (battery <= 20.0) {
       static unsigned long lastWarningPark = 0;
       if (millis() - lastWarningPark > 15 * 60 * 1000) { // every 15 min
-        sendBatteryWarning();
+        sendBatteryWarning(); // Send warning through LoRa
         lastWarningPark = millis();
       }
     }
@@ -146,12 +139,7 @@ void parkingMode() {
       activeMode();
       break;
     }
-
-    if (checkIncomingMessage()) {
-      // Handle incoming message (status or mode change)
-      // 'Get status' or 'switch modes' button, and act accordingly
-    }
-
+    checkIncomingMessage();
     delay(1000);
   }
 }
@@ -160,7 +148,7 @@ void storageMode() {
   Serial.println("Entering Storage Mode");
 
   digitalWrite(LED_PIN, LOW);
-  //turn light detection & accelerometer
+  //turn off light detection & accelerometer
   //turn on wifi & LoRa
   
   active = false;
@@ -171,18 +159,17 @@ void storageMode() {
     if (battery <= 20.0) {
       static unsigned long lastWarningStore = 0;
       if (millis() - lastWarningStore > 60 * 60 * 1000) { // every hour
-        sendBatteryWarning();
+        sendBatteryWarning(); // Send warning through LoRa
         lastWarningStore = millis();
       }
     }
-
-    if (checkIncomingMessage()) {
-      // Handle incoming message (status or mode change)
-    }
-
+    checkIncomingMessage();
     delay(1000);
   }
 }
+
+
+// Helper Functions
 
 float readBattery() {
   int raw = analogRead(VOLTAGE_PIN);
@@ -218,11 +205,16 @@ float mapBatteryPercentage(float v) {
   else return 0.0;
 }
 
-// Helper Functions
-
 void playCriticalBatteryWarning() {
   Serial.println("Critical battery! Playing audio warning.");
+  int melody = NOTE_E6;
+  int duration = 500;
+  tone(SOUND_PIN, melody, 500);
   // TODO: Add code to play audio through AUDIO_PIN
+}
+void sendBatteryWarning() {
+  Serial.println("Sending low battery warning...");
+  // TODO: Send a battery warning over WiFi / LoRa
 }
 
 bool movementDetected() {
@@ -243,7 +235,7 @@ void checkIncomingMessage() {
     if (incoming == "appToActivemode") {
       activeMode();
     } else if (incoming == "appToParkmode") {
-      parkMode();
+      parkingMode();
     } else if (incoming == "appToStoragemode") {
       storageMode();
     } else if (incoming == "appBatteryUpdate") {
@@ -252,7 +244,6 @@ void checkIncomingMessage() {
       sendLocationUpdate();
     }
   }
-  noMessage;
 }
 
 bool checkLight(){
@@ -261,10 +252,6 @@ bool checkLight(){
   return lightLevel > 2000; // tune threshold
 }
 
-void sendBatteryWarning() {
-  Serial.println("Sending low battery warning...");
-  // TODO: Send a battery warning over WiFi / LoRa
-}
 
 void sendBatteryUpdate(){
   
