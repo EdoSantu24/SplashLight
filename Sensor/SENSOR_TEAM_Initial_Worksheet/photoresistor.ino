@@ -1,5 +1,5 @@
 #include "photoresistor.h"
-
+int lightThreshold = 500;
 void setupPhotoresistor() {
   pinMode(TURN_ON_PHOTORESISTOR_PIN, OUTPUT);
   pinMode(PHOTO_RES_1, INPUT);
@@ -11,10 +11,13 @@ int readPhotoresistor() {
 }
 
 void setPhotoresistorThreshold(int threshold) {
-  // You can implement threshold logic here if needed
+  lightThreshold = threshhold; 
 }
 
 bool checkLightThreshold(int lightValue) {
+  if(readPhotoresistor() > lightThreshold){
+    return true;
+  }
   // Implement your light threshold logic here
   return false; // Placeholder
 }
