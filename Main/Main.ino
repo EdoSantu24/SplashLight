@@ -23,6 +23,15 @@ const float ADC_CORRECTION = 0.8;  // Calibration factor
 bool active = false;
 bool parked = true;
 
+enum IncomingMessageType {
+  noMessage,
+  appToActiveMode,
+  appToParkMode,
+  appToStorageMode,
+  appBatteryUpdate,
+  appLocationUpdate
+};
+
 void setup() {
   // Set up Serial
   Serial.begin(115200);
@@ -98,10 +107,7 @@ void activeMode() {
           Serial.println("Movement detected, resetting active mode.");
           break;
         }
-        if (checkIncomingMessage()) {
-          // Handle app message (get status / change mode)
-          break;
-        }
+        checkIncomingMessage() 
         delay(3000); // Check every 3 seconds
       }
       if (!movementDetected()) {
@@ -225,19 +231,47 @@ bool movementDetected() {
   return movement == HIGH; // adjust depending on your accelerometer logic
 }
 
-int checkIncomingMessage() {
-  // TODO: Check if a message is received via WiFi, LoRa, etc.
-  // Return true if a message was received
-  return false;
+void checkIncomingMessage() {
+  // TODO: Replace this dummy with actual message checking via WiFi, LoRa, etc.
+
+  if (Serial.available() > 0) { // Example: read from Serial for testing
+    String incoming = Serial.readStringUntil('\n');
+    incoming.trim(); // Remove whitespace
+
+    Serial.printf("Received message: %s\n", incoming.c_str());
+
+    if (incoming == "appToActivemode") {
+      activeMode();
+    } else if (incoming == "appToParkmode") {
+      parkMode();
+    } else if (incoming == "appToStoragemode") {
+      storageMode();
+    } else if (incoming == "appBatteryUpdate") {
+      sendBatteryUpdate();
+    } else if (incoming == "appLocationUpdate") {
+      sendLocationUpdate();
+    }
+  }
+  noMessage;
 }
 
 bool checkLight(){
-
+ int lightLevel = analogRead(LIGHT_SENS_PIN);
+  Serial.printf("Light sensor reading: %d\n", lightLevel);
+  return lightLevel > 2000; // tune threshold
 }
 
 void sendBatteryWarning() {
   Serial.println("Sending low battery warning...");
   // TODO: Send a battery warning over WiFi / LoRa
+}
+
+void sendBatteryUpdate(){
+  
+}
+
+void sendLocationUpdate(){
+  
 }
 
 void setupWiFi() {
