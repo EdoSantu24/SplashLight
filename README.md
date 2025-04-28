@@ -26,7 +26,7 @@
 ## Next time meeting
 online or in person? We can communicate via WhatsApp.
 
-
+## pins to pinmode
 pins: which pins on the ESP32 board tha pinmode corresponds to and which can be used:
 [on_board_pin_number]([allocated_for]) = [the pinMode() number]
 - 35(BEEPER) & blink = 2 
