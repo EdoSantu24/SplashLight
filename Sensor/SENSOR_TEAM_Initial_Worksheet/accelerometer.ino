@@ -123,3 +123,7 @@ void monitorAccelerometer() {
     reactToIdle();
   }
 }
+bool isMovingNow() {
+  AccelData currentData = readAccelerometerData();
+  return checkMovementThreshold(currentData);
+}

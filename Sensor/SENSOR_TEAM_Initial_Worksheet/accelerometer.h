@@ -29,5 +29,5 @@ void reactToMovement();
 void reactToIdle();
 void monitorAccelerometer();
 void print_accelometer_res();
-
+bool isMovingNow();
 #endif
