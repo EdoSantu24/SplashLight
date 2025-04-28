@@ -1,123 +1,200 @@
-// libraries
+// Libraries
+#include <WiFi.h>
+#include <Wire.h>
+// #include <LoRa.h> // Uncomment if using LoRa
+// #include <Adafruit_Sensor.h> // Example for accelerometer
+// #include <Adafruit_LIS3DH.h> // Example accelerometer
 
-
-// Define pins and stuff
-#define BUTTON_PIN_BITMASK(GPIO) (1ULL << GPIO)  // 2 ^ GPIO_NUMBER in hex
+// Define pins
+#define BUTTON_PIN_BITMASK(GPIO) (1ULL << GPIO)  // 2 ^ GPIO_NUMBER
 #define VOLTAGE_PIN 4
-#define LED_PIN
-#define AUDIO_PIN
-#define ACCELO_PIN
-#define LIGHT_SENS_PIN
-#define WIFI_PIN
+#define LED_PIN 5
+#define AUDIO_PIN 18
+#define ACCELO_PIN 19
+#define LIGHT_SENS_PIN 34
+// #define WIFI_PIN 21 // optional if needed to enable WiFi manually
 
-// Button setup:
-// side1: 3.3V -- resistor -- button -- GPIO
-// side2: GND
+// Constants for battery status calculation
+const float R1 = 14700.0;          // 14.7kΩ
+const float R2 = 20000.0;          // 20kΩ
+const float ADC_CORRECTION = 0.8;  // Calibration factor
 
-// CONSTANTS FOR THE BATTERY STATUS CALCULATION //
-const float R1 = 14700.0;          // 14.7k
-const float R2 = 20000.0;          // 20k
-const float ADC_CORRECTION = 0.8;  // Adjust based on testing
+// Variables
+bool active = false;
+bool parked = true;
 
 void setup() {
-  // Set up Serial //
+  // Set up Serial
   Serial.begin(115200);
   while (!Serial) {
     delay(10);
   }
-  analogReadResolution(12); // Set to 12 bits (0-4095)
-  analogSetAttenuation(ADC_11db); // Default is 11db (0-3.3V)
+  analogReadResolution(12); // 12-bit ADC
+  analogSetAttenuation(ADC_11db); // 0-3.3V range
 
-  // Set up LED pin //
-  // Set up Audio pin //
-  // Set up Accelerometer //
-  // Set up Light detection //
-  // Set up Wifi module //
-  // Set up LoRa //
+  // Set up pins
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(AUDIO_PIN, OUTPUT);
+  pinMode(ACCELO_PIN, INPUT);
+  pinMode(LIGHT_SENS_PIN, INPUT);
 
-  // Optional: Set up physical button for switching modes //
+  // Setup WiFi
+  setupWiFi();
 
-  // Go to parkingMode()
+  // Setup LoRa
+  setupLoRa();
+
+  // Setup Accelerometer (if necessary)
+  setupAccelerometer();
+
+  // Setup Button if needed
+  // pinMode(BUTTON_PIN, INPUT_PULLUP); // Example if using a physical button
+
+  parkingMode(); // Start in parking mode
+}
+
+void loop() {
+  // Empty main loop; Modes manage themselves
 }
 
 void activeMode() {
-  // INITIALISE //
-  // Turn off LED
-  // Turn on Accelerometer
-  // Turn on WiFi
-  // Turn on LoRa
-  // Turn on Light detection
+  Serial.println("Entering Active Mode");
 
-  // Send Geolocation
-  // Send Battery status
+  digitalWrite(LED_PIN, LOW); // LED OFF initially
+  // Turn on WiFi and LoRa modules
+  // Turn on accelerometer
+  // Turn on light detection
+  setupWiFi();
+  setupLoRa();
 
-  // ACTIVE-MODE LOOP //
-  // If battery is critical -> Send audio + message warning (every 30 sec or so)
-  // Check if it detects light -> turn on/off LED
-  // Movement detected = yes -> repeat loop
-  // Movement detected = no -> Step out of loop
+  active = true;
+  parked = false;
 
-  // Begin timer / loop count
-  // COUNTDOWN LOOP //
-  // Check if movement detected -> yes = go back to active mode loop
-  // Check if message from app:
-  //    -> Send and battery status
-  //    -> Switch to corresponding mode
-  // Check if timer ended -> activate parking mode
-  // Delay for 3 sec or so, and repeat loop
+  while (active) {
+    float battery = readBattery();
 
+    if (battery <= 20.0) {
+      // Critical battery warning
+      static unsigned long lastWarningAct = 0;
+      if (millis() - lastWarningAct > 30 * 1000) { // every 30 sec
+        playCriticalBatteryWarning();
+        sendBatteryWarning();
+        lastWarningAct = millis();
+    }
+
+    bool lightDetected = checkLight() ;
+    if (lightDetected) {
+      digitalWrite(LED_PIN, HIGH);
+    } else {
+      digitalWrite(LED_PIN, LOW);
+    }
+
+    if (!movementDetected()) {
+      Serial.println("No movement detected. Starting countdown.");
+      unsigned long countdownStart = millis();
+
+      while (millis() - countdownStart < 30000) { // 30s countdown
+        if (movementDetected()) {
+          Serial.println("Movement detected, resetting active mode.");
+          break;
+        }
+        if (checkIncomingMessage()) {
+          // Handle app message (get status / change mode)
+          break;
+        }
+        delay(3000); // Check every 3 seconds
+      }
+      if (!movementDetected()) {
+        Serial.println("No movement after countdown. Switching to Parking Mode.");
+        parkingMode();
+        break;
+      }
+    }
+    delay(1000);
+  }
 }
 
 void parkingMode() {
-  // INITIALISE //
-  // Turn off LED
-  // Turn off Light Detection
-  // Turn on Accelerometer
-  // Turn on WiFi
-  // Turn on LoRa
+  Serial.println("Entering Parking Mode");
 
-  // PARKING-MODE LOOP (loops every 1 sec) //
-  // If battery is critical -> Message warning (every 15 min)
-  // If movement detected -> Go to activeMode()
-  // If no message from app -> delay 1 sec, Go back to loop
-  // If message from app:
-  //    -> "Get status": delay 1 sec, send Geolocation and Battery status + go back to loop
-  //    -> "Change mode": go to corresponding mode
+  digitalWrite(LED_PIN, LOW);
+  // turn on accelerometer & wireless comm. 
+  // TODO: Turn off unnecessary components
+  // Assuming you can turn off Light sensor etc.
+
+  active = false;
+  parked = true;
+
+  while (parked) {
+    float battery = readBattery();
+    if (battery <= 20.0) {
+      static unsigned long lastWarningPark = 0;
+      if (millis() - lastWarningPark > 15 * 60 * 1000) { // every 15 min
+        sendBatteryWarning();
+        lastWarningPark = millis();
+      }
+    }
+
+    if (movementDetected()) {
+      Serial.println("Movement detected. Switching to Active Mode.");
+      activeMode();
+      break;
+    }
+
+    if (checkIncomingMessage()) {
+      // Handle incoming message (status or mode change)
+      // 'Get status' or 'switch modes' button, and act accordingly
+    }
+
+    delay(1000);
+  }
 }
 
 void storageMode() {
-  // INITIALISE //
-  // Turn off LED
-  // Turn off Light Detection
-  // Turn off Accelerometer
-  // Turn on WiFi
-  // Turn on LoRa
+  Serial.println("Entering Storage Mode");
 
-  // PARKING-MODE LOOP (loops every 1 sec) //
-  // If battery is critical -> Message warning (every 15 min)
-  // If no message from app -> delay 1 sec, Go back to loop
-  // If message from app:
-  //    -> "Get status": delay 1 sec, send Geolocation and Battery status + go back to loop
-  //    -> "Change mode": go to corresponding mode
+  digitalWrite(LED_PIN, LOW);
+  //turn light detection & accelerometer
+  //turn on wifi & LoRa
+  
+  active = false;
+  parked = false;
+
+  while (!active && !parked) {
+    float battery = readBattery();
+    if (battery <= 20.0) {
+      static unsigned long lastWarningStore = 0;
+      if (millis() - lastWarningStore > 60 * 60 * 1000) { // every hour
+        sendBatteryWarning();
+        lastWarningStore = millis();
+      }
+    }
+
+    if (checkIncomingMessage()) {
+      // Handle incoming message (status or mode change)
+    }
+
+    delay(1000);
+  }
 }
 
-
-void loop() {
-}
-
-void readBattery() {
+float readBattery() {
   int raw = analogRead(VOLTAGE_PIN);
-  float vPin = (raw * ADC_CORRECTION * 3.3 / 4095);
+  float vPin = (raw * ADC_CORRECTION * 3.3 / 4095.0);
   float batteryVoltage = vPin * (R1 + R2) / R2;
   float batteryCharge = mapBatteryPercentage(batteryVoltage);
+
   Serial.print("Charge: ");
   Serial.print(batteryCharge);
-  Serial.print(" | raw: ");
+  Serial.print("% | Raw ADC: ");
   Serial.print(raw);
-  Serial.print(" | Voltage on pin: ");
+  Serial.print(" | Voltage: ");
   Serial.println(vPin);
+
   if (batteryVoltage >= 4.2) Serial.println("Battery Full!");
   if (batteryVoltage <= 3.0) Serial.println("Charge soon!");
+
+  return batteryCharge;
 }
 
 float mapBatteryPercentage(float v) {
@@ -133,4 +210,47 @@ float mapBatteryPercentage(float v) {
   else if (v >= 3.00) return 10.0;
   else if (v >= 2.75) return 1.0;
   else return 0.0;
+}
+
+// Helper Functions
+
+void playCriticalBatteryWarning() {
+  Serial.println("Critical battery! Playing audio warning.");
+  // TODO: Add code to play audio through AUDIO_PIN
+}
+
+bool movementDetected() {
+  // Simple dummy example: Read accelerometer pin
+  int movement = digitalRead(ACCELO_PIN);
+  return movement == HIGH; // adjust depending on your accelerometer logic
+}
+
+int checkIncomingMessage() {
+  // TODO: Check if a message is received via WiFi, LoRa, etc.
+  // Return true if a message was received
+  return false;
+}
+
+bool checkLight(){
+
+}
+
+void sendBatteryWarning() {
+  Serial.println("Sending low battery warning...");
+  // TODO: Send a battery warning over WiFi / LoRa
+}
+
+void setupWiFi() {
+  Serial.println("Setting up WiFi...");
+  // TODO: Connect to WiFi network
+}
+
+void setupLoRa() {
+  Serial.println("Setting up LoRa...");
+  // TODO: Initialize LoRa module
+}
+
+void setupAccelerometer() {
+  Serial.println("Setting up accelerometer...");
+  // TODO: Initialize accelerometer if needed
 }
