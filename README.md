@@ -31,18 +31,18 @@ pins: which pins on the ESP32 board tha pinmode corresponds to and which can be 
 - [on board pin number]([allocated for]) = [the pinMode() number]
 - 35(BEEPER) & blink = 2 
 - 4(H) = (analog read) (JUST BLINKS WHEN TURN TO 5 - FOR AN INSTANT)
-- 5(S) = 5,
-- 6(S) = 6
-- 7(S) = 7
+- 5(S ON/OFF SMART LIGHT) = 5,
+- 6(S SDA) = 6
+- 7(S SCL) = 7
 - ??? = 8 = do not touch.
 - 12 = ??? (NOTHING)
 - 13 = ???
 - 14 = ???
-- 15(TURN_ON) = 0
-- 16(LORA_CONTINGENT CTS) = 1
+- 15(Photoresistor_reading) = 0 (ADC)
+- 16(LORA_CONTINGENT CTS) = 1 (ADC?)
 - 17 == ??? (no)
 - 18 = ?
-- 19(LORA_CONTINGENT RTS) = 18 (+ analog write)
+- 19(Turn_off_accelerometer | LORA_CONTINGENT RTS) = 18 (+ analog write)
 - 20(LORA_CONTINGENT RST) = 19  (+ analog write) 
 - ??? = 20 = (or do not touch - DO NOT TOUCH)
 - ??? = 21 = do not touch
