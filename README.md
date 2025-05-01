@@ -39,11 +39,11 @@ pins: which pins on the ESP32 board tha pinmode corresponds to and which can be 
 - 13 = ??? (NOTHING)
 - 14 = ??? (NOTHING)
 - 15(Photoresistor_reading) = 0 (ADC)
-- 16(LORA_CONTINGENT CTS) = 1 (ADC?)
+- 16() = 1 (ADC?)
 - 17 = ??? (NOTHING)
 - 18 = ??? (NOTHING)
-- 19(Turn_off_accelerometer | LORA_CONTINGENT RTS) = 18 (+ analog write)
-- 20(LORA_CONTINGENT RST) = 19  (+ analog write) 
+- 19(Turn_off_accelerometer ) = 18 (+ analog write)
+- 20(H The bike light) = 19  (+ analog write) 
 - ??? = 20 = do not touch 
 - ??? = 21 = do not touch
 - 21 = ??? (NOTHING)
