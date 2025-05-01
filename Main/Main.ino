@@ -61,12 +61,11 @@ void loop() {
 void activeMode() {
   Serial.println("Entering Active Mode");
 
-  digitalWrite(LED_PIN, LOW); // LED OFF initially
-  // Turn on WiFi and LoRa modules
-  // Turn on accelerometer
-  // Turn on light detection
-  setupWiFi();
-  setupLoRa();
+  digitalWrite(LED_PIN, LOW); // initially turning off LED
+  digitalWrite(TURN_ON_ACCELEROMETER_PIN, LOW); //turning on accelerometer
+  digitalWrite(TURN_ON_PHOTORESISTOR_PIN, LOW); //turning on photoresistor
+  setupWiFi(); // setting up WiFi
+  setupLoRa(); // setting up LoRa
 
   active = true;
   parked = false;
@@ -116,10 +115,11 @@ void activeMode() {
 void parkingMode() {
   Serial.println("Entering Parking Mode");
 
-  digitalWrite(LED_PIN, LOW);
-  // turn on accelerometer & wireless comm. 
-  // TODO: Turn off unnecessary components
-  // Assuming you can turn off Light sensor etc.
+  digitalWrite(LED_PIN, LOW); // initially turning off LED
+  digitalWrite(TURN_ON_ACCELEROMETER_PIN, LOW); //turning on accelerometer
+  digitalWrite(TURN_ON_PHOTORESISTOR_PIN, HIGH); //turning off photoresistor
+  setupWiFi(); //setting up wifi
+  setupLoRa(); //setting up LoRa
 
   active = false;
   parked = true;
@@ -147,9 +147,11 @@ void parkingMode() {
 void storageMode() {
   Serial.println("Entering Storage Mode");
 
-  digitalWrite(LED_PIN, LOW);
-  //turn off light detection & accelerometer
-  //turn on wifi & LoRa
+  digitalWrite(LED_PIN, LOW); //turning off LED
+  digitalWrite(TURN_ON_ACCELEROMETER_PIN, HIGH); //turning off accelerometer
+  digitalWrite(TURN_ON_PHOTORESISTOR_PIN, HIGH); //turning off photoresistor
+  setupWiFi(); //setting up wifi
+  setupLoRa(); //setting up LoRa
   
   active = false;
   parked = false;
