@@ -10,7 +10,7 @@
 #define BUTTON_PIN_BITMASK(GPIO) (1ULL << GPIO)  // 2 ^ GPIO_NUMBER
 #define VOLTAGE_PIN 4
 #define LED_PIN 5
-#define AUDIO_PIN 18
+#define SOUND_PIN 18
 #define ACCELO_PIN 19
 #define LIGHT_SENS_PIN 34
 #define TURN_ON_ACCELEROMETER_PIN 6
@@ -37,7 +37,7 @@ void setup() {
 
   // Set up pins
   pinMode(LED_PIN, OUTPUT);
-  pinMode(AUDIO_PIN, OUTPUT);
+  pinMode(SOUND_PIN, OUTPUT);
   pinMode(ACCELO_PIN, INPUT);
   pinMode(LIGHT_SENS_PIN, INPUT);
 
@@ -261,6 +261,9 @@ void sendBatteryUpdate(){
 }
 
 void sendLocationUpdate(){
+}
+
+void sendLEDStatus(){
 }
 
 void setupWiFi() {
