@@ -229,8 +229,8 @@ bool movementDetected() {
 }
 
 void checkIncomingMessage() {
-  // TODO: Replace this dummy with actual message checking via WiFi, LoRa, etc.
-
+  sendLEDStatus()
+// TODO: Replace this dummy with actual message checking via WiFi, LoRa, etc.
   if (Serial.available() > 0) { // Example: read from Serial for testing
     String incoming = Serial.readStringUntil('\n');
     incoming.trim(); // Remove whitespace
