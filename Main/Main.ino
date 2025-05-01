@@ -2,7 +2,7 @@
 #include <WiFi.h>
 #include <Wire.h>
 #include <pitches.h>
-// #include <LoRa.h> // Uncomment if using LoRa
+// #include <LoRa.h> // LoRa libraries
 // #include <Adafruit_Sensor.h> // Example for accelerometer
 // #include <Adafruit_LIS3DH.h> // Example accelerometer
 
@@ -208,9 +208,10 @@ float mapBatteryPercentage(float v) {
 void playCriticalBatteryWarning() {
   Serial.println("Critical battery! Playing audio warning.");
   int melody = NOTE_E6;
-  int duration = 500;
-  tone(SOUND_PIN, melody, 500);
-  // TODO: Add code to play audio through AUDIO_PIN
+  int duration = 250;
+  tone(SOUND_PIN, melody, duration);
+  delay(250);
+  tone(SOUND_PIN, melody, duration);
 }
 void sendBatteryWarning() {
   Serial.println("Sending low battery warning...");
@@ -252,13 +253,10 @@ bool checkLight(){
   return lightLevel > 2000; // tune threshold
 }
 
-
 void sendBatteryUpdate(){
-  
 }
 
 void sendLocationUpdate(){
-  
 }
 
 void setupWiFi() {
