@@ -80,7 +80,8 @@ void activeMode() {
       static unsigned long lastWarningAct = 0;
       if (millis() - lastWarningAct > 30 * 1000) { // every 30 sec
         playCriticalBatteryWarning();
-        sendBatteryWarning();
+        sendMsg("BatteryWarning");
+        // sendBatteryWarning();
         lastWarningAct = millis();
       }
     }
@@ -131,7 +132,8 @@ void parkingMode() {
     if (battery <= 20.0) {
       static unsigned long lastWarningPark = 0;
       if (millis() - lastWarningPark > 15 * 60 * 1000) { // every 15 min
-        sendBatteryWarning(); // Send warning through LoRa
+        sendMsg("BatteryWarning");
+        // sendBatteryWarning(); // Send warning through LoRa
         lastWarningPark = millis();
       }
     }
@@ -163,7 +165,8 @@ void storageMode() {
     if (battery <= 20.0) {
       static unsigned long lastWarningStore = 0;
       if (millis() - lastWarningStore > 60 * 60 * 1000) { // every hour
-        sendBatteryWarning(); // Send warning through LoRa
+        sendMsg("BatteryWarning");
+        // sendBatteryWarning(); // Send warning through LoRa
         lastWarningStore = millis();
       }
     }
@@ -172,8 +175,7 @@ void storageMode() {
   }
 }
 
-
-// Helper Functions
+////// HELPER FUNCTIONS //////
 
 float readBattery() {
   int raw = analogRead(VOLTAGE_PIN);
@@ -187,9 +189,6 @@ float readBattery() {
   Serial.print(raw);
   Serial.print(" | Voltage: ");
   Serial.println(vPin);
-
-  if (batteryVoltage >= 4.2) Serial.println("Battery Full!");
-  if (batteryVoltage <= 3.0) Serial.println("Charge soon!");
 
   return batteryCharge;
 }
@@ -217,10 +216,6 @@ void playCriticalBatteryWarning() {
   delay(250);
   tone(SOUND_PIN, melody, duration);
 }
-void sendBatteryWarning() {
-  Serial.println("Sending low battery warning...");
-  // TODO: Send a battery warning over WiFi / LoRa
-}
 
 bool movementDetected() {
   // Simple dummy example: Read accelerometer pin
@@ -229,7 +224,9 @@ bool movementDetected() {
 }
 
 void checkIncomingMessage() {
-  sendLEDStatus()
+  sendMsg("LEDStatus");
+  // sendLEDStatus();
+
 // TODO: Replace this dummy with actual message checking via WiFi, LoRa, etc.
   if (Serial.available() > 0) { // Example: read from Serial for testing
     String incoming = Serial.readStringUntil('\n');
@@ -244,9 +241,11 @@ void checkIncomingMessage() {
     } else if (incoming == "appToStoragemode") {
       storageMode();
     } else if (incoming == "appBatteryUpdate") {
-      sendBatteryUpdate();
+      sendMsg("BatteryUpdate");
+      // sendBatteryUpdate();
     } else if (incoming == "appLocationUpdate") {
-      sendLocationUpdate();
+      sendMsg("LocationUpdate");
+      // sendLocationUpdate();
     }
   }
 }
@@ -255,15 +254,6 @@ bool checkLight(){
  int lightLevel = analogRead(LIGHT_SENS_PIN);
   Serial.printf("Light sensor reading: %d\n", lightLevel);
   return lightLevel > 2000; // tune threshold
-}
-
-void sendBatteryUpdate(){
-}
-
-void sendLocationUpdate(){
-}
-
-void sendLEDStatus(){
 }
 
 void setupWiFi() {
@@ -279,4 +269,20 @@ void setupLoRa() {
 void setupAccelerometer() {
   Serial.println("Setting up accelerometer...");
   // TODO: Initialize accelerometer if needed
+}
+
+void sendMsg(String whatToSend) {
+  if      (whatToSend == "BatteryUpdate"){
+
+  } 
+  else if (whatToSend == "BatteryWarning"){
+
+  }
+  else if (whatToSend == "LocationUpdate") {
+  
+  } 
+  else if (whatToSend == "LEDStatus") {
+  
+  }
+
 }
