@@ -13,6 +13,8 @@
 #define AUDIO_PIN 18
 #define ACCELO_PIN 19
 #define LIGHT_SENS_PIN 34
+#define TURN_ON_ACCELEROMETER_PIN 6
+#define TURN_ON_PHOTORESISTOR_PIN 7
 // #define WIFI_PIN 21 // optional if needed to enable WiFi manually
 
 // Constants for battery status calculation
