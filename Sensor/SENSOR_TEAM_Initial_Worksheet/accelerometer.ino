@@ -93,7 +93,7 @@ void float_to_string_simpl(float input){
   tim.toCharArray(in_message,100); 
 
 
-/*### TBU
+/*### 
 This function takes and prints the result - a deprecated function that could be updated to the |||| - separated format or to utilize the data structure for the accelerometer
 
 arguments: none
@@ -127,14 +127,14 @@ void print_accelometer_res(){
   Serial.println("");
 
 }
-/*### TBC
-This function ...
+/*### 
+This function sets a new threshold and timeout. threshold is how much acceleration measured is needed to reconfirm that the device (and bike) is moving. timeout is time in between confirmed movements, before it considers itself to be stationary.
   #0 - might need an upper and lower threshold (so it do not switch constantly between STATIONARY and MOVING)
 
 
 arguments: 
-  float newThreshhold: 
-  float newTimeout:
+  float newThreshhold: the higher, the less sensitive it is
+  float newTimeout: the higher, the more time it has without movement before reacting to its idleness. it is in ms.
 
 returns: void
 #######*/
@@ -148,23 +148,25 @@ void setAccelerometerThresholds(float newThreshhold, float newTimeout) {
   Serial.println("s");
 }
 
-/*### TBC
-This function ...
+/*###
+This function checks if threshold has been exceeded. if so, it resets its idle timer.
   #0 - might need an upper and lower threshold (so it do not switch constantly between STATIONARY and MOVING)
 arguments: 
-   AccelData data:
+   AccelData data: the reading provided to this function - it needs both x and y to determine acceleration...
+     #5 - should it not also use z coordinates? in case whe havent placed the accelerometer in a perfectly plane orientation?
 
-returns: bool
+returns: a bool which tells if the acceleration indicates movement currently.
 #######*/
 bool checkMovementThreshold(AccelData data) {
   unsigned long previousTime = 0;
-  float speedDiff = sqrt(sq(data.ax) + sq(data.ay));
+  float speedDiff = sqrt(sq(data.ax) + sq(data.ay)); // #5 z???
   return speedDiff > accelThreshold; //#0
 }
 
-/*### TBC
-This function ...
-
+/*### 
+This function will, if movement has been detected, reset the idle timer to the current time and it will set the appropiate flag to high (isMoving)
+  //#6 - Why do we do an if else statement where for both cases, we say: "lastMovementTime = millis();"? would it be more correct to only do this, if we detect movement? 
+    // i know we have the "isMovingNow()" function - but if we just modify this a tad, then it would do the same thing for us.
 arguments: none
 
 returns: void
@@ -175,12 +177,12 @@ void reactToMovement() {
     lastMovementTime = millis();
     Serial.println("Movement detected!");
   } else {
-    lastMovementTime = millis();
+    lastMovementTime = millis(); //#6
   }
 }
 
-/*### TBC
-This function ...
+/*### 
+This function tallies one final time how long the device (and bike) has remained stationary - which is due to the fact, that we are not interested in how long it has remained idle. though actually, this could be an excellent indicator of when a child was kidnapped - by thus giving us the lower bound timeframe for the kidnapping.... though this supposed feature is beyond the scope of this course
 
 arguments: none
 
@@ -196,8 +198,9 @@ void reactToIdle() {
   }
 }
 
-/*### TBC
-This function ...
+/*###
+This function is not in use currently.
+  - its purpose was to verify that the accelerometer thresholding functions worked as intended.
 
 arguments: none
 
@@ -212,12 +215,12 @@ void monitorAccelerometer() {
   }
 }
 
-/*### TBC
-This function ...
+/*### 
+This function checks only whenever the bike is moving currently - by comparing its accelerations to the threshold.
 
 arguments: none
 
-returns: bool: 
+returns: a bool which is HIGH if it is moving and FALSE if not.  
 #######*/
 bool isMovingNow() {
   AccelData currentData = readAccelerometerData();
