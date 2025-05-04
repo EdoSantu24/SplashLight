@@ -13,35 +13,77 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 char in_message[100]; // Used to pass message to print between functions
 int mode = 0;  // mode = 0 = active, 1 = park, 2 = storage
 
+/**
+This function will enable sensors according to the input bitmask
+  bit 0 (0x01)1 = I2C (needed for LCD and  accelerometer)
+  bit 1 (0x02)2 = LCD
+  bit 2 (0x04)4 = Accelerometer
+  bit 3 (0x08)8 = photoresistor
+  bit 4 (0x10)16 = will assume I2C has already been enabled
+  bit 5 (0x20)32 = will assume that LCD has already been enabled 
+  bit 6 (0x40)64 = will assume that accelerometer has already been calibrated  
+*/
+/*### 
+This function will enable sensors according to the input bitmask
+
+arguments: 
+   int bitmask:
+        bit 0 (0x01)1 = I2C (needed for LCD and  accelerometer)
+        bit 1 (0x02)2 = LCD
+        bit 2 (0x04)4 = Accelerometer
+        bit 3 (0x08)8 = photoresistor
+        bit 4 (0x10)16 = will assume I2C has already been enabled
+        bit 5 (0x20)32 = will assume that LCD has already been enabled 
+        bit 6 (0x40)64 = will assume that accelerometer has already been calibrated  
+            #3 THIS BITMASK NEEDS TO BE SIMPLIFIED/REDUCED. (remove LCD, and disablement of 
+
+returns: void
+#######*/
 void setup_sensors(int bitmask) {
     Wire.begin();
     // Initialize sensors based on bitmask
+
+
+    //The Accelerometer is ENABLED!!!
     if (bitmask & 4 && (bitmask & 64) == 0) {
         setupAccelerometer();
     }
+    //The Accelerometer is DISABLED!!! 
+        //#2 (needs to be refitted into the file split)
+    /*if((bitmask & 4) == 0 && bitmask & 64){
+    //accelo.end(); //not a function
+    Serial.println("AAAAAAAAAAAAAAAAAAHHHHHHHHHH");
+    //accelo.reset();
+    delay(10);
+    digitalWrite(TURN_ON_ACCELEROMETER_PIN,HIGH);*/
+
+
+
+    
     if (bitmask & 8) {
         setupPhotoresistor();
     }
-    // LCD setup remains here
+    // LCD setup remains here #!
 }
 
 void setup() {
   // Initialize Serial communication
   Serial.begin(115200);
 
-  // Pin mode for LCD
+  // Pin mode for LCD #!
   pinMode(TURN_ON_LCD_PIN, OUTPUT);
 
-  // Setup sensors with bitmask (active all sensors for example)
+  // Setup sensors with bitmask (active all sensors for example) #?
   setup_sensors(8 + 4 + 2 + 1);
 
-  // You can also initialize other things here (LCD, etc.)
+  // You can also initialize other things here (LCD, etc.) #!
 }
 
 void loop() {
 if (mode == 0) {  // Active mode
     // Turn on all sensors
-    digitalWrite(TURN_ON_ACCELEROMETER_PIN, LOW);
+        //#3 - Needs to calibrate sensor - assuming it has been powered off will mess with the calibration
+    digitalWrite(TURN_ON_ACCELEROMETER_PIN, LOW); //#3
     digitalWrite(TURN_ON_PHOTORESISTOR_PIN, LOW);
     
     if (isMovingNow()) {
@@ -60,7 +102,8 @@ if (mode == 0) {  // Active mode
   }
   else if (mode == 1) {  // Park mode
     // Disable photoresistor, keep accelerometer on
-    digitalWrite(TURN_ON_ACCELEROMETER_PIN, LOW);
+      //#3 - Needs to calibrate sensor - assuming it has been powered off will mess with the calibration
+    digitalWrite(TURN_ON_ACCELEROMETER_PIN, LOW); //#3
     digitalWrite(TURN_ON_PHOTORESISTOR_PIN, HIGH);
     
     // Handle accelerometer logic (no need to check photoresistor)
@@ -78,7 +121,7 @@ if (mode == 0) {  // Active mode
   }
   else if (mode == 2) {  // Storage mode
     // Turn off both accelerometer and photoresistor
-    digitalWrite(TURN_ON_ACCELEROMETER_PIN, HIGH);
+    digitalWrite(TURN_ON_ACCELEROMETER_PIN, HIGH); //#4 - might need a call to accelo.reset(); - because the last valid reading seem to remain after power has been shut off to the accelerometer.
     digitalWrite(TURN_ON_PHOTORESISTOR_PIN, HIGH);
     
     // No need to check accelerometer or photoresistor here
