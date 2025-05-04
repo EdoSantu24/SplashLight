@@ -1,3 +1,15 @@
+/*******************************************************
+ * File:        SENSOR_TEAM_Initial_Worksheet.ino
+ * Description: this file contains the overall frame for our workspace, and our related functions. There are still a few things to clean up, such as all mentions of the LCD.
+ * Team:        Sensor Team
+ * Created:     2025-04-07
+ * Modified:    2025-05-04 (comments)
+ *
+ * License:     the structure of THIS PARTICULAR COMMENT was made using Chatgpt 
+                 (we deemed it to be quite good looking)
+                all else in this file has been made by the Sensor Team.
+ *******************************************************/
+
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include "accelerometer.h"
