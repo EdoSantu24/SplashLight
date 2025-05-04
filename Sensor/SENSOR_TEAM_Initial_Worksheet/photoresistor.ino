@@ -7,8 +7,7 @@
  *
  * License:     the structure of THIS PARTICULAR COMMENT was made using Chatgpt 
                  (we deemed it to be quite good looking)
-                all else in this file has been made by the Sensor Team*
-                  *with indirect inspiration from the sensors library and its corresponding creator: https://github.com/RobTillaart/GY521 
+                all else in this file has been made by the Sensor Team.
  *******************************************************/
 
 #include "photoresistor.h"
