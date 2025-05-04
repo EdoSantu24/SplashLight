@@ -15,14 +15,14 @@
 GY521 accelo(0x68);
 
 //variables/ control signals/flags
-float accelThreshold = 0.2;
+float accelThreshold = 0.2; //#0
 unsigned long idleTimeout = 30000;
 unsigned long lastMovementTime = 0;
 bool isMoving = false;
 
 /*###
 This function sets up the accelerometers digital representation, and calibrates it.
-Currently it does not have a deactivation equivalent variant and neither will it react appropiately if the accelerometer is not connected (correct behaviour would be to fail, or return "false" - because thats Arduino's convention).
+  #2 Currently it does not have a deactivation equivalent variant and neither will it react appropiately if the accelerometer is not connected (correct behaviour would be to fail, or return "false" - because thats Arduino's convention).
 
 arguments: none
 
@@ -129,6 +129,8 @@ void print_accelometer_res(){
 }
 /*### TBC
 This function ...
+  #0 - might need an upper and lower threshold (so it do not switch constantly between STATIONARY and MOVING)
+
 
 arguments: 
   float newThreshhold: 
@@ -137,10 +139,10 @@ arguments:
 returns: void
 #######*/
 void setAccelerometerThresholds(float newThreshhold, float newTimeout) {
-  accelThreshold = newThreshhold;
+  accelThreshold = newThreshhold; //#0
   idleTimeout = newTimeout;
   Serial.print("New thresholds set - Accel: ");
-  Serial.print(accelThreshold);
+  Serial.print(accelThreshold);//#0
   Serial.print("Idle timeout: ");
   Serial.print(idleTimeout/1000);
   Serial.println("s");
@@ -148,7 +150,7 @@ void setAccelerometerThresholds(float newThreshhold, float newTimeout) {
 
 /*### TBC
 This function ...
-
+  #0 - might need an upper and lower threshold (so it do not switch constantly between STATIONARY and MOVING)
 arguments: 
    AccelData data:
 
@@ -157,7 +159,7 @@ returns: bool
 bool checkMovementThreshold(AccelData data) {
   unsigned long previousTime = 0;
   float speedDiff = sqrt(sq(data.ax) + sq(data.ay));
-  return speedDiff > accelThreshold;
+  return speedDiff > accelThreshold; //#0
 }
 
 /*### TBC
