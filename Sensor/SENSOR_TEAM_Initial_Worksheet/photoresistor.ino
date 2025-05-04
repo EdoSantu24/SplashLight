@@ -48,7 +48,7 @@ arguments:
 returns: void
 #######*/
 void setPhotoresistorThreshold(int threshold) {
-  lightThreshold = threshhold; //#1
+  lightThreshold = threshold; //#1 //also fixed the misspelling from "threshhold" to "threshold"
 }
 
 /*###
