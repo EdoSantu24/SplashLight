@@ -1,7 +1,12 @@
+#include <TinyGPSPlus.h>
+
+#include <QuickDebug.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include "accelerometer.h"
 #include "photoresistor.h"
+
+#include <HardwareSerial.h>
 
 // LCD setup
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -10,12 +15,15 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 #define SDA_PIN 21
 #define SCL_PIN 22
 
+// GPS setup on UART2 using GPIO 6 (RX) and GPIO 7 (TX)
+TinyGPSPlus gps;
+HardwareSerial gpsSerial(2);  // UART2
+
 char in_message[100]; // Used to pass message to print between functions
 int mode = 0;  // mode = 0 = active, 1 = park, 2 = storage
 
 void setup_sensors(int bitmask) {
     Wire.begin();
-    // Initialize sensors based on bitmask
     if (bitmask & 4 && (bitmask & 64) == 0) {
         setupAccelerometer();
     }
@@ -26,26 +34,36 @@ void setup_sensors(int bitmask) {
 }
 
 void setup() {
-  // Initialize Serial communication
   Serial.begin(115200);
-
-  // Pin mode for LCD
   pinMode(TURN_ON_LCD_PIN, OUTPUT);
+  
+  // Setup GPS UART (pin 6 = RX, 7 = TX)
+  gpsSerial.begin(9600, SERIAL_8N1, 6, 7);
 
-  // Setup sensors with bitmask (active all sensors for example)
   setup_sensors(8 + 4 + 2 + 1);
-
-  // You can also initialize other things here (LCD, etc.)
 }
 
 void loop() {
-if (mode == 0) {  // Active mode
-    // Turn on all sensors
+  // Read GPS data
+  while (gpsSerial.available()) {
+    gps.encode(gpsSerial.read());
+  }
+
+  // Print GPS location if available
+  if (gps.location.isUpdated()) {
+    Serial.print("Latitude: ");
+    Serial.println(gps.location.lat(), 6);
+    Serial.print("Longitude: ");
+    Serial.println(gps.location.lng(), 6);
+    Serial.print("Satellites: ");
+    Serial.println(gps.satellites.value());
+  }
+
+  if (mode == 0) {  // Active mode
     digitalWrite(TURN_ON_ACCELEROMETER_PIN, LOW);
     digitalWrite(TURN_ON_PHOTORESISTOR_PIN, LOW);
     
     if (isMovingNow()) {
-      // Movement detected, remain in active mode
       reactToMovement();
       print_accelometer_res();   
 
@@ -53,19 +71,15 @@ if (mode == 0) {  // Active mode
       Serial.print("Light strength: ");
       Serial.println(light);
     } else {
-      // No movement detected, switch to parking mode
       mode = 1;
       Serial.println("No movement detected! Switching to parking mode.");
     }
   }
   else if (mode == 1) {  // Park mode
-    // Disable photoresistor, keep accelerometer on
     digitalWrite(TURN_ON_ACCELEROMETER_PIN, LOW);
     digitalWrite(TURN_ON_PHOTORESISTOR_PIN, HIGH);
     
-    // Handle accelerometer logic (no need to check photoresistor)
     if (isMovingNow()) {
-      // If movement is detected, switch to active mode
       mode = 0;
       Serial.println("Movement detected! Switching to active mode.");
       reactToMovement();
@@ -77,18 +91,10 @@ if (mode == 0) {  // Active mode
     }
   }
   else if (mode == 2) {  // Storage mode
-    // Turn off both accelerometer and photoresistor
     digitalWrite(TURN_ON_ACCELEROMETER_PIN, HIGH);
     digitalWrite(TURN_ON_PHOTORESISTOR_PIN, HIGH);
-    
-    // No need to check accelerometer or photoresistor here
     Serial.println("In storage mode, sensors are off.");
   }
-  /*
-  if(MESSAGE FROM LORA or button press){
-    mode=1; 
-    //we go into parking mode when the button is pressed or lora sends message
-  }
-*/
-  delay(1000);  // Delay to simulate a time loop
+
+  delay(1000);
 }

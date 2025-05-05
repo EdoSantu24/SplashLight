@@ -11,7 +11,7 @@ int readPhotoresistor() {
 }
 
 void setPhotoresistorThreshold(int threshold) {
-  lightThreshold = threshhold; 
+  lightThreshold = threshold; 
 }
 
 bool checkLightThreshold(int lightValue) {
