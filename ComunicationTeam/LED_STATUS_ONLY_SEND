@@ -14,12 +14,17 @@ uint32_t devAddr =  ( uint32_t )0x007e6ae1;
 
 uint16_t userChannelsMask[6]={ 0x00FF,0x0000,0x0000,0x0000,0x0000,0x0000 };
 
+void active_mode();
+void parking_mode();
+void storage_mode();
+void request_gps();
+
 LoRaMacRegion_t loraWanRegion = ACTIVE_REGION;
 DeviceClass_t loraWanClass = CLASS_A;
 bool overTheAirActivation = true;
-uint32_t appTxDutyCycle = 30000; // ogni 30s
-bool loraWanAdr = true;
-bool isTxConfirmed = true;
+uint32_t appTxDutyCycle = 15000; // ogni 30s
+bool loraWanAdr = true; 
+bool isTxConfirmed = true; 
 uint8_t appPort = 2;
 uint8_t confirmedNbTrials = 4;
 
@@ -29,14 +34,13 @@ bool ledState = false;
 unsigned long lastLedToggle = 0;
 unsigned long lastTx = 0;
 const unsigned long toggleInterval = 60000;   // 60s
-const unsigned long txInterval = 30000;       // 30s
+const unsigned long txInterval = 15000;       // 30s
 
 static void prepareTxFrame(uint8_t port) {
   appDataSize = 1;
   appData[0] = ledState ? 0x0B : 0x0C;
 }
 
-/* Gestione downlink (opzionale, non usato in questo caso) */
 void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
   if (mcpsIndication->RxData == true && mcpsIndication->BufferSize > 0) {
     Serial.print("Downlink ricevuto: ");
@@ -46,10 +50,40 @@ void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
       Serial.print(" ");
     }
     Serial.println();
+
+    uint8_t command = mcpsIndication->Buffer[0];
+
+    switch (command) {
+      case 0x02:
+        Serial.println("Comando ricevuto: active_mode");
+        active_mode();
+        break;
+
+      case 0x03:
+        Serial.println("Comando ricevuto: parking_mode");
+        parking_mode();
+        break;
+
+      case 0x04:
+        Serial.println("Comando ricevuto: storage_mode");
+        storage_mode();
+        break;
+
+      case 0x05:
+        Serial.println("Comando ricevuto: request_gps");
+        request_gps();
+        break;
+
+      default:
+        Serial.print("Comando sconosciuto: 0x");
+        Serial.println(command, HEX);
+        break;
+    }
   }
 }
 
 void setup() {
+  //LoRaWAN.setDefaultDR(false); //aggiunto
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
   Serial.begin(115200);
@@ -102,3 +136,34 @@ void loop() {
       break;
   }
 }
+
+void active_mode() {
+  Serial.println("Active mode activated");
+}
+
+void parking_mode() {
+  Serial.println("Parking mode activated");
+}
+
+void storage_mode() {
+  Serial.println("Storage mode activated");
+}
+
+void request_gps() {
+  Serial.println("GPS mode activated");
+}
+
+
+// metter una funzione in ricezione che mediante gli if specifica quale mod attivare e successivamente richiama la funzione per attivarla
+/* Gestione downlink (opzionale, non usato in questo caso) 
+void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
+  if (mcpsIndication->RxData == true && mcpsIndication->BufferSize > 0) {
+    Serial.print("Downlink ricevuto: ");
+    for (int i = 0; i < mcpsIndication->BufferSize; i++) {
+      Serial.print("0x");
+      Serial.print(mcpsIndication->Buffer[i], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
+  }
+}*/
