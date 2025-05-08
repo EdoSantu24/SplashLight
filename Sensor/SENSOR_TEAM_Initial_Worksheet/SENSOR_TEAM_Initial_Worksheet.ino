@@ -18,9 +18,9 @@
 // LCD setup
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 #define TURN_ON_LCD_PIN 13
-
-#define SDA_PIN 21
-#define SCL_PIN 22
+//21,22
+#define SDA_PIN 6
+#define SCL_PIN 7
 
 char in_message[100]; // Used to pass message to print between functions
 int mode = 0;  // mode = 0 = active, 1 = park, 2 = storage
@@ -52,7 +52,7 @@ arguments:
 returns: void
 #######*/
 void setup_sensors(int bitmask) {
-    Wire.begin();
+    Wire.begin(SDA_PIN,SCL_PIN);
     // Initialize sensors based on bitmask
 
 
