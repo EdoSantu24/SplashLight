@@ -51,6 +51,24 @@ void setupAccelerometer() {
 
 
 /*###
+This function sets up the accelerometers digital representation, and calibrates it.
+  #2 Currently it does not have a deactivation equivalent variant and neither will it react appropiately if the accelerometer is not connected (correct behaviour would be to fail, or return "false" - because thats Arduino's convention).
+
+arguments: none
+
+returns: void
+#######*/
+void turnOffAccelerometer() {
+    pinMode(TURN_ON_ACCELEROMETER_PIN, OUTPUT);
+    //accelo.end(); //not a function
+    //Serial.println("AAAAAAAAAAAAAAAAAAHHHHHHHHHH");
+    //accelo.reset();
+    delay(10);
+    digitalWrite(TURN_ON_ACCELEROMETER_PIN,HIGH);
+}
+
+
+/*###
 This function sends a read request to the accelerometer, recieves the reading, stores the data, and returns it
 
 arguments: none
