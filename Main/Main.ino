@@ -6,6 +6,10 @@
 // #include <Adafruit_Sensor.h> // Example for accelerometer
 // #include <Adafruit_LIS3DH.h> // Example accelerometer
 
+//for the led, there is a variable called ledState that keeps track of the status of the led, please put it true/false, when you update the status of the led
+
+//START LoraWAN Setups
+
 #include "LoRaWan_APP.h"
 
 /* OTAA keys */
@@ -37,9 +41,9 @@ int counter = 1;
 unsigned long lastLedToggle = 0;
 unsigned long lastTx = 0;
 const unsigned long toggleInterval = 60000;   // 60s
-const unsigned long txInterval = 15000;       // 30s
+const unsigned long txInterval = 15000;       // 15s => sending every 15 seconds
 
-
+//END of LoraWAN setups
 
 // Define pins
 #define BUTTON_PIN_BITMASK(GPIO) (1ULL << GPIO)  // 2 ^ GPIO_NUMBER
@@ -61,6 +65,7 @@ const float ADC_CORRECTION = 0.8;  // Calibration factor
 bool active = false;
 bool parked = true;
 
+// packet to send every 15s
 static void prepareTxFrame(uint8_t port) {
   if (counter <=3) {
     appDataSize = 1;
@@ -72,7 +77,7 @@ static void prepareTxFrame(uint8_t port) {
     counter = 0;
   }
 }
-
+//Downlinkhandle for sending LoraWAN
 void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
   if (mcpsIndication->RxData == true && mcpsIndication->BufferSize > 0) {
     Serial.print("Downlink ricevuto: ");
@@ -144,7 +149,7 @@ void setup() {
 
   parkingMode(); // Start in parking mode
 }
-
+//LoraWAN is sent in loop
 void loop() {
   unsigned long currentMillis = millis();
 
@@ -196,6 +201,7 @@ void activeMode() {
   Serial.println("Entering Active Mode");
 
   digitalWrite(LED_PIN, LOW); // initially turning off LED
+  ledState = false;
   digitalWrite(TURN_ON_ACCELEROMETER_PIN, LOW); //turning on accelerometer
   digitalWrite(TURN_ON_PHOTORESISTOR_PIN, LOW); //turning on photoresistor
   setupWiFi(); // setting up WiFi
@@ -251,6 +257,7 @@ void parkingMode() {
   Serial.println("Entering Parking Mode");
 
   digitalWrite(LED_PIN, LOW); // initially turning off LED
+  ledState = false;
   digitalWrite(TURN_ON_ACCELEROMETER_PIN, LOW); //turning on accelerometer
   digitalWrite(TURN_ON_PHOTORESISTOR_PIN, HIGH); //turning off photoresistor
   setupWiFi(); //setting up wifi
@@ -284,6 +291,7 @@ void storageMode() {
   Serial.println("Entering Storage Mode");
 
   digitalWrite(LED_PIN, LOW); //turning off LED
+  ledState = false;
   digitalWrite(TURN_ON_ACCELEROMETER_PIN, HIGH); //turning off accelerometer
   digitalWrite(TURN_ON_PHOTORESISTOR_PIN, HIGH); //turning off photoresistor
   setupWiFi(); //setting up wifi
