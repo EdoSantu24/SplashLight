@@ -22,6 +22,7 @@ struct AccelData {
 extern GY521 accelo;
 
 void setupAccelerometer();
+void turnOffAccelerometer();
 AccelData readAccelerometerData();
 void setAccelerometerThresholds(float newThreshhold, float newTimeout);
 bool checkMovementThreshold(AccelData data);
