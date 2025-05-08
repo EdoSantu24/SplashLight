@@ -1,5 +1,4 @@
 #include <TinyGPSPlus.h>
-
 #include <QuickDebug.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -11,9 +10,9 @@
 // LCD setup
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 #define TURN_ON_LCD_PIN 13
-
-#define SDA_PIN 21
-#define SCL_PIN 22
+//21,22
+#define SDA_PIN 6
+#define SCL_PIN 7
 
 // GPS setup on UART2 using GPIO 6 (RX) and GPIO 7 (TX)
 TinyGPSPlus gps;
@@ -22,15 +21,50 @@ HardwareSerial gpsSerial(2);  // UART2
 char in_message[100]; // Used to pass message to print between functions
 int mode = 0;  // mode = 0 = active, 1 = park, 2 = storage
 
+/**
+This function will enable sensors according to the input bitmask
+  bit 0 (0x01)1 = I2C (needed for LCD and  accelerometer)
+  bit 1 (0x02)2 = LCD
+  bit 2 (0x04)4 = Accelerometer
+  bit 3 (0x08)8 = photoresistor
+  bit 4 (0x10)16 = will assume I2C has already been enabled
+  bit 5 (0x20)32 = will assume that LCD has already been enabled 
+  bit 6 (0x40)64 = will assume that accelerometer has already been calibrated  
+*/
+/*### 
+This function will enable sensors according to the input bitmask
+
+arguments: 
+   int bitmask:
+        bit 0 (0x01)1 = I2C (needed for LCD and  accelerometer)
+        bit 1 (0x02)2 = LCD
+        bit 2 (0x04)4 = Accelerometer
+        bit 3 (0x08)8 = photoresistor
+        bit 4 (0x10)16 = will assume I2C has already been enabled
+        bit 5 (0x20)32 = will assume that LCD has already been enabled 
+        bit 6 (0x40)64 = will assume that accelerometer has already been calibrated  
+            #3 THIS BITMASK NEEDS TO BE SIMPLIFIED/REDUCED. (remove LCD, and disablement of 
+
+returns: void
+#######*/
 void setup_sensors(int bitmask) {
     Wire.begin();
     if (bitmask & 4 && (bitmask & 64) == 0) {
         setupAccelerometer();
     }
+    //The Accelerometer is DISABLED!!! 
+        //#2 (needs to be refitted into the file split)
+    if((bitmask & 4) == 0 && bitmask & 64){
+        turnOffAccelerometer();
+    }
+
+
+
+    
     if (bitmask & 8) {
         setupPhotoresistor();
     }
-    // LCD setup remains here
+    // LCD setup remains here #!
 }
 
 void setup() {

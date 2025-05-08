@@ -5,7 +5,7 @@
 #include "GY521.h"
 
 // Accelerometer pin
-#define TURN_ON_ACCELEROMETER_PIN 27
+#define TURN_ON_ACCELEROMETER_PIN 18
 
 // Accelerometer values:
 extern float accelThreshold;  // in m/s²
@@ -22,6 +22,7 @@ struct AccelData {
 extern GY521 accelo;
 
 void setupAccelerometer();
+void turnOffAccelerometer();
 AccelData readAccelerometerData();
 void setAccelerometerThresholds(float newThreshhold, float newTimeout);
 bool checkMovementThreshold(AccelData data);
