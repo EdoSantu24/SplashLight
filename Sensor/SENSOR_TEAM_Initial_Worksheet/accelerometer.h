@@ -5,7 +5,7 @@
 #include "GY521.h"
 
 // Accelerometer pin
-#define TURN_ON_ACCELEROMETER_PIN 27
+#define TURN_ON_ACCELEROMETER_PIN 18
 
 // Accelerometer values:
 extern float accelThreshold;  // in m/s²
