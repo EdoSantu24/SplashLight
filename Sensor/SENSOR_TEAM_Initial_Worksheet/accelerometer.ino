@@ -176,10 +176,10 @@ arguments:
 returns: a bool which tells if the acceleration indicates movement currently.
 #######*/
 bool checkMovementThreshold(AccelData data) {
-  unsigned long previousTime = 0;
-  float speedDiff = sqrt(sq(data.ax) + sq(data.ay)); // #5 z???
-  return speedDiff > accelThreshold; //#0
+  float speedDiff = sqrt(sq(data.ax) + sq(data.ay) + sq(data.az)); // Now includes Z-axis
+  return speedDiff > accelThreshold;
 }
+
 
 /*### 
 This function will, if movement has been detected, reset the idle timer to the current time and it will set the appropiate flag to high (isMoving)

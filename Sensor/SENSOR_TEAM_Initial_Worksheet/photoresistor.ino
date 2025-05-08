@@ -40,7 +40,6 @@ int readPhotoresistor() {
 
 /*###
 This function reads the output making it through the photoresistor.
- #1 - might need an upper and lower threshold (so it do not switch constantly between LIGHT and DARK)
 
 arguments: 
   int threshold: the new threshold to set

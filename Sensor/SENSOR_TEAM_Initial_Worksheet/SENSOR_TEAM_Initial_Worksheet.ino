@@ -57,9 +57,6 @@ void setup_sensors(int bitmask) {
     if((bitmask & 4) == 0 && bitmask & 64){
         turnOffAccelerometer();
     }
-
-
-
     
     if (bitmask & 8) {
         setupPhotoresistor();
