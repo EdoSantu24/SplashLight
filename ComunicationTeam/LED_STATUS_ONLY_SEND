@@ -31,14 +31,24 @@ uint8_t confirmedNbTrials = 4;
 #define LED_PIN 19  // Puoi cambiarlo se serve
 bool ledState = false;
 
+bool gpsRequestPending = false;
+int counter = 1;
+
 unsigned long lastLedToggle = 0;
 unsigned long lastTx = 0;
 const unsigned long toggleInterval = 60000;   // 60s
 const unsigned long txInterval = 15000;       // 30s
 
 static void prepareTxFrame(uint8_t port) {
-  appDataSize = 1;
-  appData[0] = ledState ? 0x0B : 0x0C;
+  if (counter <=3) {
+    appDataSize = 1;
+    appData[0] = ledState ? 0x0B : 0x0C;
+    counter = counter+1;}
+  else {
+    appDataSize = 1;
+    appData[0] = readBattery();
+    counter = 0;
+  }
 }
 
 void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
@@ -137,6 +147,11 @@ void loop() {
   }
 }
 
+float readBattery() {
+  return 0x5A;
+}
+
+
 void active_mode() {
   Serial.println("Active mode activated");
 }
@@ -149,21 +164,29 @@ void storage_mode() {
   Serial.println("Storage mode activated");
 }
 
-void request_gps() {
-  Serial.println("GPS mode activated");
+
+// Encode 2 floats (lat, lon) into 8 bytes (4 bytes each, IEEE 754)
+void send_gps(float latitude, float longitude) {
+  Serial.println("Sending GPS coordinates to TTN...");
+
+  uint8_t *latPtr = (uint8_t*) &latitude;
+  uint8_t *lonPtr = (uint8_t*) &longitude;
+
+  appDataSize = 8;
+  for (int i = 0; i < 4; i++) appData[i] = latPtr[i];
+  for (int i = 0; i < 4; i++) appData[i + 4] = lonPtr[i];
+
+  LoRaWAN.send();
 }
 
+// Simulated GPS retrieval
+void request_gps() {
+  Serial.println("GPS request triggered. Getting fake coordinates...");
+ 
+  float fake_lat = 55.6761;  // Example: Copenhagen latitude
+  float fake_lon =  12.5683;  // Example: Copenhagen longitude
+ 
+ counter = 0;
 
-// metter una funzione in ricezione che mediante gli if specifica quale mod attivare e successivamente richiama la funzione per attivarla
-/* Gestione downlink (opzionale, non usato in questo caso) 
-void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
-  if (mcpsIndication->RxData == true && mcpsIndication->BufferSize > 0) {
-    Serial.print("Downlink ricevuto: ");
-    for (int i = 0; i < mcpsIndication->BufferSize; i++) {
-      Serial.print("0x");
-      Serial.print(mcpsIndication->Buffer[i], HEX);
-      Serial.print(" ");
-    }
-    Serial.println();
-  }
-}*/
+  send_gps(fake_lat, fake_lon);
+}
