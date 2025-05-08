@@ -62,12 +62,9 @@ void setup_sensors(int bitmask) {
     }
     //The Accelerometer is DISABLED!!! 
         //#2 (needs to be refitted into the file split)
-    /*if((bitmask & 4) == 0 && bitmask & 64){
-    //accelo.end(); //not a function
-    Serial.println("AAAAAAAAAAAAAAAAAAHHHHHHHHHH");
-    //accelo.reset();
-    delay(10);
-    digitalWrite(TURN_ON_ACCELEROMETER_PIN,HIGH);*/
+    if((bitmask & 4) == 0 && bitmask & 64){
+        turnOffAccelerometer();
+    }
 
 
 
