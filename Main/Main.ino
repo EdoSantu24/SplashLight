@@ -38,9 +38,7 @@ bool ledState = false;
 bool gpsRequestPending = false;
 int counter = 1;
 
-unsigned long lastLedToggle = 0;
 unsigned long lastTx = 0;
-const unsigned long toggleInterval = 60000;   // 60s
 const unsigned long txInterval = 15000;       // 15s => sending every 15 seconds
 
 //END of LoraWAN setups
@@ -174,14 +172,7 @@ void loop() {
       break;
 
     case DEVICE_STATE_SLEEP:
-      // Gestione manuale del timing
-      if (currentMillis - lastLedToggle >= toggleInterval) {
-        lastLedToggle = currentMillis;
-        ledState = !ledState;
-        digitalWrite(LED_PIN, ledState ? HIGH : LOW);
-        Serial.print("LED toggled: ");
-        Serial.println(ledState ? "ON" : "OFF");
-      }
+      // If it is not working check the time management on the previous code
 
       if (currentMillis - lastTx >= txInterval) {
         lastTx = currentMillis;
