@@ -28,6 +28,13 @@ bool isTxConfirmed = true;
 uint8_t appPort = 2;
 uint8_t confirmedNbTrials = 4;
 
+//int mode = 2; //mode = 2 => active, = 3 => parking, = 4 => storage
+bool firstJoinDone = false;
+uint8_t startupMessageStep = 0;
+
+bool active = false;
+bool parked = true;
+
 #define LED_PIN 19  // Puoi cambiarlo se serve
 bool ledState = false;
 
@@ -111,13 +118,56 @@ void loop() {
 
     case DEVICE_STATE_JOIN:
       LoRaWAN.join();
+      firstJoinDone = true; // Appena completato il join
+      startupMessageStep = 0;
       break;
 
     case DEVICE_STATE_SEND:
-      prepareTxFrame(appPort);
-      LoRaWAN.send();
-      deviceState = DEVICE_STATE_CYCLE;
-      break;
+      if (firstJoinDone && startupMessageStep < 6) {
+        switch (startupMessageStep) {
+          case 0: // send the led state
+            appDataSize = 1;
+            appData[0] = ledState ? 0x0B : 0x0C;
+            break;
+          case 1: // send the led state
+            appDataSize = 1;
+            appData[0] = ledState ? 0x0B : 0x0C;
+            break;
+          case 2: // send the mod
+            appDataSize = 1;
+            appData[0] = req_mod();
+            break;
+          case 3: // send the mod
+            appDataSize = 1;
+            appData[0] = req_mod();
+            break;
+          case 4: // send battery state
+            appDataSize = 1;
+            appData[0] = readBattery();
+            break;
+          case 5: // send battery state
+            appDataSize = 1;
+            appData[0] = readBattery();
+            break;
+          }
+
+        if (startupMessageStep != 5) {
+          LoRaWAN.send();
+        }
+
+        startupMessageStep++;
+
+        if (startupMessageStep >= 6) {
+          firstJoinDone = false; // completato il primo ciclo
+        }
+
+        deviceState = DEVICE_STATE_CYCLE;
+      } else {
+          prepareTxFrame(appPort);
+          LoRaWAN.send();
+          deviceState = DEVICE_STATE_CYCLE;
+        }
+        break;
 
     case DEVICE_STATE_CYCLE:
       deviceState = DEVICE_STATE_SLEEP;
@@ -164,6 +214,17 @@ void storage_mode() {
   Serial.println("Storage mode activated");
 }
 
+float req_mod() {
+  if (active == true) {
+    return 0x02;
+  }
+  else if (parked == true) {
+    return 0x03;
+  } 
+  else {
+    return 0x04;
+  }
+}
 
 // Encode 2 floats (lat, lon) into 8 bytes (4 bytes each, IEEE 754)
 void send_gps(float latitude, float longitude) {
@@ -190,3 +251,5 @@ void request_gps() {
 
   send_gps(fake_lat, fake_lon);
 }
+
+
