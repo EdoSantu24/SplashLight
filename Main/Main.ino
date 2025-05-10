@@ -33,6 +33,10 @@ bool isTxConfirmed = true;
 uint8_t appPort = 2;
 uint8_t confirmedNbTrials = 4;
 
+bool firstJoinDone = false;
+uint8_t startupMessageStep = 0;
+
+
 bool ledState = false;
 
 bool gpsRequestPending = false;
@@ -159,13 +163,56 @@ void loop() {
 
     case DEVICE_STATE_JOIN:
       LoRaWAN.join();
+      firstJoinDone = true; // Appena completato il join
+      startupMessageStep = 0;
       break;
 
     case DEVICE_STATE_SEND:
-      prepareTxFrame(appPort);
-      LoRaWAN.send();
-      deviceState = DEVICE_STATE_CYCLE;
-      break;
+      if (firstJoinDone && startupMessageStep < 6) {
+        switch (startupMessageStep) {
+          case 0: // send the led state
+            appDataSize = 1;
+            appData[0] = ledState ? 0x0B : 0x0C;
+            break;
+          case 1: // send the led state
+            appDataSize = 1;
+            appData[0] = ledState ? 0x0B : 0x0C;
+            break;
+          case 2: // send the mod
+            appDataSize = 1;
+            appData[0] = req_mod();
+            break;
+          case 3: // send the mod
+            appDataSize = 1;
+            appData[0] = req_mod();
+            break;
+          case 4: // send battery state
+            appDataSize = 1;
+            appData[0] = readBattery();
+            break;
+          case 5: // send battery state
+            appDataSize = 1;
+            appData[0] = readBattery();
+            break;
+          }
+
+        if (startupMessageStep != 5) {
+          LoRaWAN.send();
+        }
+
+        startupMessageStep++;
+
+        if (startupMessageStep >= 6) {
+          firstJoinDone = false; // completato il primo ciclo
+        }
+
+        deviceState = DEVICE_STATE_CYCLE;
+      } else {
+          prepareTxFrame(appPort);
+          LoRaWAN.send();
+          deviceState = DEVICE_STATE_CYCLE;
+        }
+        break;
 
     case DEVICE_STATE_CYCLE:
       deviceState = DEVICE_STATE_SLEEP;
@@ -307,6 +354,18 @@ void storageMode() {
 }
 
 ////// HELPER FUNCTIONS //////
+
+float req_mod() {
+  if (active == true) {
+    return 0x02;
+  }
+  else if (parked == true) {
+    return 0x03;
+  } 
+  else {
+    return 0x04;
+  }
+}
 
 float readBattery() {
   int raw = analogRead(VOLTAGE_PIN);
