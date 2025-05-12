@@ -1,7 +1,22 @@
+//# LIST OF ISSUES
+//#1 - Lacks functions definition - we call a function that does not exist
+void setupWiFi(){
+  return;
+}
+void setupLoRa(){
+  return;
+}
+//#1 STATUS: UNSOLVED
+
+
+
 // Libraries
 #include <WiFi.h>
 #include <Wire.h>
-#include <pitches.h>
+#include <../libraries/pitches/pitches.h>
+#include <../Sensor/SENSOR_TEAM_Initial_Worksheet/accelerometer.h>
+#include <../Sensor/SENSOR_TEAM_Initial_Worksheet/photoresistor.h>
+//#include <loramac/LoRaMac.h>
 // #include <LoRa.h> // LoRa libraries
 // #include <Adafruit_Sensor.h> // Example for accelerometer
 // #include <Adafruit_LIS3DH.h> // Example accelerometer
@@ -17,33 +32,34 @@ uint8_t devEui[] = { 0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x06, 0x53, 0xC8 };
 uint8_t appEui[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x99 };
 uint8_t appKey[] = { 0x74, 0xD6, 0x6E, 0x63, 0x45, 0x82, 0x48, 0x27, 0xFE, 0xC5, 0xB7, 0x70, 0xBA, 0x2B, 0x50, 0x45 };
 
-/* ABP (solo se usi ABP invece di OTAA) */
+/* ABP keys (not used)*/
 uint8_t nwkSKey[] = { 0x15, 0xb1, 0xd0, 0xef, 0xa4, 0x63, 0xdf, 0xbe, 0x3d, 0x11, 0x18, 0x1e, 0x1e, 0xc7, 0xda,0x85 };
 uint8_t appSKey[] = { 0xd7, 0x2c, 0x78, 0x75, 0x8c, 0xdc, 0xca, 0xbf, 0x55, 0xee, 0x4a, 0x77, 0x8d, 0x16, 0xef,0x67 };
 uint32_t devAddr =  ( uint32_t )0x007e6ae1;
 
 uint16_t userChannelsMask[6]={ 0x00FF,0x0000,0x0000,0x0000,0x0000,0x0000 };
-
+/* LoRaWAN configuration */
 LoRaMacRegion_t loraWanRegion = ACTIVE_REGION;
 DeviceClass_t loraWanClass = CLASS_A;
 bool overTheAirActivation = true;
-uint32_t appTxDutyCycle = 15000; // ogni 30s
+uint32_t appTxDutyCycle = 15000; 
 bool loraWanAdr = true; 
 bool isTxConfirmed = true; 
 uint8_t appPort = 2;
 uint8_t confirmedNbTrials = 4;
-
+/* Startup sequence flags and counters */
 bool firstJoinDone = false;
 uint8_t startupMessageStep = 0;
 
 
 bool ledState = false;
-
+/* GPS request flag */
 bool gpsRequestPending = false;
+/* Transmission control */
 int counter = 1;
 
 unsigned long lastTx = 0;
-const unsigned long txInterval = 15000;       // 15s => sending every 15 seconds
+const unsigned long txInterval = 15000;       // Data TX every 30s
 
 //END of LoraWAN setups
 
@@ -67,7 +83,10 @@ const float ADC_CORRECTION = 0.8;  // Calibration factor
 bool active = false;
 bool parked = true;
 
-// packet to send every 15s
+/**
+ * Prepares the application payload for regular transmissions.
+ * Alternates between sending LED state and battery level.
+ */
 static void prepareTxFrame(uint8_t port) {
   if (counter <=3) {
     appDataSize = 1;
@@ -79,7 +98,10 @@ static void prepareTxFrame(uint8_t port) {
     counter = 0;
   }
 }
-//Downlinkhandle for sending LoraWAN
+/**
+ * Handles downlink messages received from the network server.
+ * Recognizes and processes remote commands for mode switching or GPS request.
+ */
 void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
   if (mcpsIndication->RxData == true && mcpsIndication->BufferSize > 0) {
     Serial.print("Downlink ricevuto: ");
@@ -120,7 +142,9 @@ void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
     }
   }
 }
-
+/**
+ * Initial device setup.
+ */
 void setup() {
   // Set up Serial
   Serial.begin(115200);
@@ -138,10 +162,10 @@ void setup() {
   pinMode(LIGHT_SENS_PIN, INPUT);
 
   // Setup WiFi
-  setupWiFi();
+  setupWiFi(); //#1
 
   // Setup LoRa
-  setupLoRa();
+  setupLoRa(); //#1
 
   // Setup Accelerometer (if necessary)
   setupAccelerometer();
@@ -151,7 +175,9 @@ void setup() {
 
   parkingMode(); // Start in parking mode
 }
-//LoraWAN is sent in loop
+/**
+ * Main device loop. Manages state transitions, message sending, LED toggling, and sleep cycles.
+ */
 void loop() {
   unsigned long currentMillis = millis();
 
@@ -168,12 +194,13 @@ void loop() {
       break;
 
     case DEVICE_STATE_SEND:
+       // Initial startup sequence: send LED, mode, battery
       if (firstJoinDone && startupMessageStep < 6) {
         switch (startupMessageStep) {
           case 0: // send the led state
             appDataSize = 1;
-            appData[0] = ledState ? 0x0B : 0x0C;
-            break;
+             appData[0] = ledState ? 0x0B : 0x0C; //hex 0B: sending LED ON
+            break;                               //hex 0C: sending LED OFF
           case 1: // send the led state
             appDataSize = 1;
             appData[0] = ledState ? 0x0B : 0x0C;
@@ -203,7 +230,7 @@ void loop() {
         startupMessageStep++;
 
         if (startupMessageStep >= 6) {
-          firstJoinDone = false; // completato il primo ciclo
+              firstJoinDone = false; 
         }
 
         deviceState = DEVICE_STATE_CYCLE;
@@ -219,7 +246,7 @@ void loop() {
       break;
 
     case DEVICE_STATE_SLEEP:
-      // If it is not working check the time management on the previous code
+      
 
       if (currentMillis - lastTx >= txInterval) {
         lastTx = currentMillis;
@@ -357,13 +384,13 @@ void storageMode() {
 
 float req_mod() {
   if (active == true) {
-    return 0x02;
+    return 0x02; //hex 02 is active
   }
   else if (parked == true) {
-    return 0x03;
+    return 0x03; //hex 03 is parked
   } 
   else {
-    return 0x04;
+    return 0x04; //hex 04 is storage
   }
 }
 
@@ -413,33 +440,6 @@ bool movementDetected() {
   return movement == HIGH; // adjust depending on your accelerometer logic
 }
 
-void checkIncomingMessage() {
-  sendMsg("LEDStatus");
-  // sendLEDStatus();
-
-// TODO: Replace this dummy with actual message checking via WiFi, LoRa, etc.
-  if (Serial.available() > 0) { // Example: read from Serial for testing
-    String incoming = Serial.readStringUntil('\n');
-    incoming.trim(); // Remove whitespace
-
-    Serial.printf("Received message: %s\n", incoming.c_str());
-
-    if (incoming == "appToActivemode") {
-      activeMode();
-    } else if (incoming == "appToParkmode") {
-      parkingMode();
-    } else if (incoming == "appToStoragemode") {
-      storageMode();
-    } else if (incoming == "appBatteryUpdate") {
-      sendMsg("BatteryUpdate");
-      // sendBatteryUpdate();
-    } else if (incoming == "appLocationUpdate") {
-      sendMsg("LocationUpdate");
-      // sendLocationUpdate();
-    }
-  }
-}
-
 bool checkLight(){
  int lightLevel = analogRead(LIGHT_SENS_PIN);
   Serial.printf("Light sensor reading: %d\n", lightLevel);
@@ -460,16 +460,24 @@ void send_gps(float latitude, float longitude) {
   LoRaWAN.send();
 }
 
-//the code for the GPS has to be inserted here!!! for now just hardcoded
+/**
+ * @brief Sends GPS coordinates encoded in IEEE 754 format to TTN.
+ * @param latitude Latitude value (float)
+ * @param longitude Longitude value (float)
+
+ */
 void request_gps() {
   Serial.println("GPS request triggered. Getting fake coordinates...");
  
-  float fake_lat = 55.6761;  // Example: Copenhagen latitude
-  float fake_lon =  12.5683;  // Example: Copenhagen longitude
+    
+
+  // this hardcoded latitude and longitude need to be replaced with the actual latitude and longitude retrieved by the GNSS
+  float fake_lat = 55.6761;  // Example: Copenhagen latitude (to be deleted)
+  float fake_lon =  12.5683;  // Example: Copenhagen longitude (to be deleted)
  
   counter = 0;
 
-  send_gps(fake_lat, fake_lon);
+  send_gps(fake_lat, fake_lon); //sending latitude and longitude
 }
 
 
@@ -478,18 +486,4 @@ void setupAccelerometer() {
   // TODO: Initialize accelerometer if needed
 }
 
-void sendMsg(String whatToSend) {
-  if      (whatToSend == "BatteryUpdate"){
 
-  } 
-  else if (whatToSend == "BatteryWarning"){
-
-  }
-  else if (whatToSend == "LocationUpdate") {
-  
-  } 
-  else if (whatToSend == "LEDStatus") {
-  
-  }
-
-}
