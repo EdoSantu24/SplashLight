@@ -1,31 +1,26 @@
-//# LIST OF ISSUES
-//#1 - Lacks functions definition - we call a function that does not exist
-void setupWiFi(){
-  return;
-}
-void setupLoRa(){
-  return;
-}
-//#1 STATUS: UNSOLVED
-
-
 
 // Libraries
+
 #include <WiFi.h>
 #include <Wire.h>
-#include <../libraries/pitches/pitches.h>
+#include <pitches.h>
 #include <../Sensor/SENSOR_TEAM_Initial_Worksheet/accelerometer.h>
 #include <../Sensor/SENSOR_TEAM_Initial_Worksheet/photoresistor.h>
+#include <../Sensor/SENSOR_TEAM_Initial_Worksheet/accelerometer.ino>
+#include <../Sensor/SENSOR_TEAM_Initial_Worksheet/photoresistor.ino>
 //#include <loramac/LoRaMac.h>
 // #include <LoRa.h> // LoRa libraries
 // #include <Adafruit_Sensor.h> // Example for accelerometer
 // #include <Adafruit_LIS3DH.h> // Example accelerometer
 
 //for the led, there is a variable called ledState that keeps track of the status of the led, please put it true/false, when you update the status of the led
-
+#include "LoRaWan_APP.h"
 //START LoraWAN Setups
 
-#include "LoRaWan_APP.h"
+
+
+
+
 
 /* OTAA keys */
 uint8_t devEui[] = { 0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x06, 0x53, 0xC8 };
@@ -68,10 +63,8 @@ const unsigned long txInterval = 15000;       // Data TX every 30s
 #define VOLTAGE_PIN 4
 #define LED_PIN 5
 #define SOUND_PIN 18
-#define ACCELO_PIN 19
-#define LIGHT_SENS_PIN 34
-#define TURN_ON_ACCELEROMETER_PIN 6
-#define TURN_ON_PHOTORESISTOR_PIN 7
+#define SDA_PIN 6
+#define SCL_PIN 7
 // #define WIFI_PIN 21 // optional if needed to enable WiFi manually
 
 // Constants for battery status calculation
@@ -82,6 +75,20 @@ const float ADC_CORRECTION = 0.8;  // Calibration factor
 // Variables
 bool active = false;
 bool parked = true;
+
+
+//# LIST OF ISSUES
+//#1 - Lacks functions definition - we call a function that does not exist
+void setupWiFi(){
+  return;
+}
+void setupLoRa(){
+  return;
+}
+void checkIncomingMessage(){
+  return;
+}
+//#1 STATUS: UNSOLVED
 
 /**
  * Prepares the application payload for regular transmissions.
@@ -148,6 +155,7 @@ void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
 void setup() {
   // Set up Serial
   Serial.begin(115200);
+
   Mcu.begin(HELTEC_BOARD, SLOW_CLK_TPYE);
   while (!Serial) {
     delay(10);
@@ -158,8 +166,15 @@ void setup() {
   // Set up pins
   pinMode(LED_PIN, OUTPUT);
   pinMode(SOUND_PIN, OUTPUT);
-  pinMode(ACCELO_PIN, INPUT);
-  pinMode(LIGHT_SENS_PIN, INPUT);
+
+  //I2C
+  Wire.begin(SDA_PIN,SCL_PIN);
+  //accelerometer
+  setupAccelerometer();
+  setAccelerometerThresholds(2, 10000);
+  //photoresistor
+  setupPhotoresistor();
+  setPhotoresistorThreshold(2000);
 
   // Setup WiFi
   setupWiFi(); //#1
@@ -267,8 +282,7 @@ void activeMode() {
 
   digitalWrite(LED_PIN, LOW); // initially turning off LED
   ledState = false;
-  digitalWrite(TURN_ON_ACCELEROMETER_PIN, LOW); //turning on accelerometer
-  digitalWrite(TURN_ON_PHOTORESISTOR_PIN, LOW); //turning on photoresistor
+  turnOffAccelerometer();
   setupWiFi(); // setting up WiFi
   setupLoRa(); // setting up LoRa
 
@@ -283,32 +297,31 @@ void activeMode() {
       static unsigned long lastWarningAct = 0;
       if (millis() - lastWarningAct > 30 * 1000) { // every 30 sec
         playCriticalBatteryWarning();
-        sendMsg("BatteryWarning");
-        // sendBatteryWarning();
         lastWarningAct = millis();
       }
     }
 
-    bool lightDetected = checkLight() ;
+    bool lightDetected = checkLightThreshold(-30); //the argument is not used - but as git might incur merge conflicts, we decide to leave it unremoved from the function declaration/definition
     if (lightDetected) {
       digitalWrite(LED_PIN, HIGH);
     } else {
       digitalWrite(LED_PIN, LOW);
     }
-
-    if (!movementDetected()) {
+    bool movement = isMovingNow();
+    if (!movement) {
       Serial.println("No movement detected. Starting countdown.");
       unsigned long countdownStart = millis();
-
+      
       while (millis() - countdownStart < 30000) { // 30s countdown
-        if (movementDetected()) {
+        movement = isMovingNow();
+        if (movement) {
           Serial.println("Movement detected, resetting active mode.");
           break;
         }
         checkIncomingMessage();
         delay(3000); // Check every 3 seconds
       }
-      if (!movementDetected()) {
+      if (!movement) {
         Serial.println("No movement after countdown. Switching to Parking Mode.");
         parkingMode();
         break;
@@ -323,8 +336,8 @@ void parkingMode() {
 
   digitalWrite(LED_PIN, LOW); // initially turning off LED
   ledState = false;
-  digitalWrite(TURN_ON_ACCELEROMETER_PIN, LOW); //turning on accelerometer
-  digitalWrite(TURN_ON_PHOTORESISTOR_PIN, HIGH); //turning off photoresistor
+  turnOffAccelerometer();
+  
   setupWiFi(); //setting up wifi
   setupLoRa(); //setting up LoRa
 
@@ -336,13 +349,12 @@ void parkingMode() {
     if (battery <= 20.0) {
       static unsigned long lastWarningPark = 0;
       if (millis() - lastWarningPark > 15 * 60 * 1000) { // every 15 min
-        sendMsg("BatteryWarning");
-        // sendBatteryWarning(); // Send warning through LoRa
+        //as we are in parking mode - and seek not to disturb the passing pedestrians - we do not sound the Battery warning
         lastWarningPark = millis();
       }
     }
 
-    if (movementDetected()) {
+    if (isMovingNow()) {
       Serial.println("Movement detected. Switching to Active Mode.");
       activeMode();
       break;
@@ -357,8 +369,7 @@ void storageMode() {
 
   digitalWrite(LED_PIN, LOW); //turning off LED
   ledState = false;
-  digitalWrite(TURN_ON_ACCELEROMETER_PIN, HIGH); //turning off accelerometer
-  digitalWrite(TURN_ON_PHOTORESISTOR_PIN, HIGH); //turning off photoresistor
+  setupAccelerometer(); 
   setupWiFi(); //setting up wifi
   setupLoRa(); //setting up LoRa
   
@@ -370,8 +381,6 @@ void storageMode() {
     if (battery <= 20.0) {
       static unsigned long lastWarningStore = 0;
       if (millis() - lastWarningStore > 60 * 60 * 1000) { // every hour
-        sendMsg("BatteryWarning");
-        // sendBatteryWarning(); // Send warning through LoRa
         lastWarningStore = millis();
       }
     }
@@ -434,17 +443,7 @@ void playCriticalBatteryWarning() {
   tone(SOUND_PIN, melody, duration);
 }
 
-bool movementDetected() {
-  // Simple dummy example: Read accelerometer pin
-  int movement = digitalRead(ACCELO_PIN);
-  return movement == HIGH; // adjust depending on your accelerometer logic
-}
 
-bool checkLight(){
- int lightLevel = analogRead(LIGHT_SENS_PIN);
-  Serial.printf("Light sensor reading: %d\n", lightLevel);
-  return lightLevel > 2000; // tune threshold
-}
 
 // Encode 2 floats (lat, lon) into 8 bytes (4 bytes each, IEEE 754)
 void send_gps(float latitude, float longitude) {
@@ -480,10 +479,5 @@ void request_gps() {
   send_gps(fake_lat, fake_lon); //sending latitude and longitude
 }
 
-
-void setupAccelerometer() {
-  Serial.println("Setting up accelerometer...");
-  // TODO: Initialize accelerometer if needed
-}
 
 
