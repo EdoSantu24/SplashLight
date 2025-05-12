@@ -17,10 +17,20 @@ For this smart light project, the following modules are required:
 - Resistors
 
 ## Getting Started
-Put this in "File -> preferences -> Additional Boards manager URLs" (REMEMBER TO SEPERATE MULTIPLE LINKS WITH COMMA!!!): https://resource.heltec.cn/download/package_heltec_esp32_index.json
+To get started, you will need to set up the code as well as the hardware. We will provide you with a step-by-step guide on how to do both of these steps.
 
-Remember the following board managers:
- - Heltec ESP32 Series Dev-boards
+### Hardware Setup
+To set up the hardware, you will need the components listed in the project overview. You will also need basic tools like breadboard and jumper wires to connect the components together.
+
+### Code Setup
+First of all, you need to install the Arduino IDE on your computer. You can download it from the official Arduino website: [Arduino IDE](https://www.arduino.cc/en/software/).
+Next, you should install the ESP32 board package in the Arduino IDE. To do this, follow these steps:
+1. In the Arduino IDE, go to File -> Preferences.
+2. First, set the "Sketchbook location" to a folder containing this project.
+3. In the "Additional Board Manager URLs" field, add the following URL: `https://resource.heltec.cn/download/package_heltec_esp32_index.json`
+4. In the Library Manager, search for "Heltec" and install the package called "Heltec ESP32 Dev-Boards" by Heltec Automations.
+5. Go to Tools -> Board -> Board Manager and select "Wireless Mini Shell".
+Now you are ready to run the code in "Main.ino" from the Arduino IDE without any errors.
 
 Remember to get the following libraries:
  - Adafruit_GFX.h

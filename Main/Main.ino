@@ -18,10 +18,6 @@
 //START LoraWAN Setups
 
 
-
-
-
-
 /* OTAA keys */
 uint8_t devEui[] = { 0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x06, 0x53, 0xC8 };
 uint8_t appEui[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x99 };
@@ -75,20 +71,7 @@ const float ADC_CORRECTION = 0.8;  // Calibration factor
 // Variables
 bool active = false;
 bool parked = true;
-
-
-//# LIST OF ISSUES
-//#1 - Lacks functions definition - we call a function that does not exist
-void setupWiFi(){
-  return;
-}
-void setupLoRa(){
-  return;
-}
-void checkIncomingMessage(){
-  return;
-}
-//#1 STATUS: UNSOLVED
+int current_mode = 0; // 0 = ACTIVE MODE | 1 = PARKING MODE | 2 = STORAGE MODE
 
 /**
  * Prepares the application payload for regular transmissions.
@@ -176,24 +159,152 @@ void setup() {
   setupPhotoresistor();
   setPhotoresistorThreshold(500);
 
-  // Setup WiFi
-  setupWiFi(); //#1
-
-  // Setup LoRa
-  setupLoRa(); //#1
-
   // Setup Accelerometer (if necessary)
   setupAccelerometer();
 
   // Setup Button if needed
   // pinMode(BUTTON_PIN, INPUT_PULLUP); // Example if using a physical button
   
-  parkingMode(); // Start in parking mode
+  current_mode = 1; // Start in parking mode
+  modeSwitcher();
 }
-/**
- * Main device loop. Manages state transitions, message sending, LED toggling, and sleep cycles.
- */
+
 void loop() {
+  // Does nothing
+}
+
+/**
+ * @brief Main device loop. Manages state transitions to different modes,
+ * which are stored in the 'current_mode' variable.
+ * 0 : Active Mode \\ 1 : Parking Mode \\ 2 : Storage Mode
+**/
+void modeSwitcher(){
+  while(true){
+    switch (current_mode) {
+      case 0:
+        current_mode = activeMode();
+        break;
+      case 1:
+        current_mode = parkingMode();
+        break;
+      case 2:
+        current_mode = storageMode();
+        break;
+    }
+  }
+}
+
+/**
+* @brief Active Mode, turns LED on/off depending on light detected, turns accelerometer on. 
+* Also plays a buzzer when battery level is critical. Will switch to Parking Mode
+* if no movement has been detected for 30 sec
+*/
+int activeMode() {
+  // Initialize Active Mode //
+  Serial.println("Entering Active Mode");
+
+  digitalWrite(LED_PIN, LOW); // initially turning off LED
+  ledState = false;
+  setupAccelerometer();
+
+  active = true;
+  parked = false;
+
+  // Main loop in Active Mode //
+  while (active) {
+    float battery = readBattery();
+
+    // Critical battery warning
+    if (battery <= 20.0) { 
+      static unsigned long lastWarningAct = 0;
+      if (millis() - lastWarningAct > 60 * 1000) { // every 60 sec
+        playCriticalBatteryWarning();
+        lastWarningAct = millis();
+      }
+    }
+
+    // Light detection
+    bool lightDetected = checkLightThreshold(-30); //the argument is not used - but as git might incur merge conflicts, we decide to leave it unremoved from the function declaration/definition
+    if (lightDetected) {
+      // Serial.print("TOO MUCH LIGHT:"); Serial.println(readPhotoresistor());
+      digitalWrite(LED_PIN, LOW);
+    } else {
+      // Serial.print("TOO LITTLE LIGHT:"); Serial.println(readPhotoresistor());
+      digitalWrite(LED_PIN, HIGH);
+    }
+
+    // Movement detection
+    bool movement = isMovingNow();
+    if (!movement) {
+      Serial.println("No movement detected. Starting countdown.");
+      unsigned long countdownStart = millis();
+      
+      while (millis() - countdownStart < 30000) { // 30s countdown, checking every 3 sec
+        movement = isMovingNow();
+        if (movement) {
+          Serial.println("Movement detected, resetting active mode.");
+          break;
+        }
+        delay(3000); // Check every 3 seconds
+      }
+      if (!movement) {
+        Serial.println("No movement after countdown. Switching to Parking Mode.");
+        current_mode = 1; // Switching to parking mode
+        return current_mode;
+      }
+    }
+    delay(1000);
+  }
+}
+
+/**
+* @brief Parking Mode, turns LED off and Accelerometer on. Switches to active mode if movement is detected. 
+*/
+int parkingMode() {
+  // Initialize Parking Mode //
+  Serial.println("Entering Parking Mode");
+
+  digitalWrite(LED_PIN, LOW); // initially turning off LED
+  ledState = false;
+  setupAccelerometer();
+
+  active = false;
+  parked = true;
+
+  // Main loop in Parking Mode //
+  while (parked) {        
+    if (isMovingNow()) {
+      Serial.println("Movement detected. Switching to Active Mode.");
+      current_mode = 0;
+      return current_mode;
+    }
+    delay(1000);
+  }
+}
+
+/**
+* @brief Storage Mode, turns LED and Accelerometer off. ONLY switches modes if specified from app. 
+*/
+int storageMode() {
+  // Initialize Storage Mode //
+  Serial.println("Entering Storage Mode");
+
+  digitalWrite(LED_PIN, LOW); //turning off LED
+  ledState = false;
+  turnOffAccelerometer();
+  
+  active = false;
+  parked = false;
+
+  // Main loop in Storage Mode //
+  while (!active && !parked) {
+    delay(1000);
+  }
+}
+
+////// HELPER FUNCTIONS //////
+
+void checkLoRa(){
   unsigned long currentMillis = millis();
 
   switch (deviceState) {
@@ -261,8 +372,6 @@ void loop() {
       break;
 
     case DEVICE_STATE_SLEEP:
-      
-
       if (currentMillis - lastTx >= txInterval) {
         lastTx = currentMillis;
         deviceState = DEVICE_STATE_SEND;
@@ -276,128 +385,6 @@ void loop() {
       break;
   }
 }
-
-void activeMode() {
-  Serial.println("Entering Active Mode");
-
-  digitalWrite(LED_PIN, LOW); // initially turning off LED
-  ledState = false;
-  setupAccelerometer();
-  setupWiFi(); // setting up WiFi
-  setupLoRa(); // setting up LoRa
-
-  active = true;
-  parked = false;
-
-  while (active) {
-    float battery = readBattery();
-
-    if (battery <= 20.0) {
-      // Critical battery warning
-      static unsigned long lastWarningAct = 0;
-      if (millis() - lastWarningAct > 30 * 1000) { // every 30 sec
-        playCriticalBatteryWarning();
-        lastWarningAct = millis();
-      }
-    }
-
-    bool lightDetected = checkLightThreshold(-30); //the argument is not used - but as git might incur merge conflicts, we decide to leave it unremoved from the function declaration/definition
-    if (lightDetected) {
-
-    
-      //delay(1000);
-
-      Serial.print("TOO MUCH LIGHT:"); Serial.println(readPhotoresistor());
-
-      digitalWrite(LED_PIN, LOW);
-    } else {
-      Serial.print("TOO LITTLE LIGHT:"); Serial.println(readPhotoresistor());
-      digitalWrite(LED_PIN, HIGH);
-    }
-    bool movement = isMovingNow();
-    if (!movement) {
-      Serial.println("No movement detected. Starting countdown.");
-      unsigned long countdownStart = millis();
-      
-      while (millis() - countdownStart < 30000) { // 30s countdown
-        movement = isMovingNow();
-        if (movement) {
-          Serial.println("Movement detected, resetting active mode.");
-          break;
-        }
-        checkIncomingMessage();
-        delay(3000); // Check every 3 seconds
-      }
-      if (!movement) {
-        Serial.println("No movement after countdown. Switching to Parking Mode.");
-        parkingMode();
-        break;
-      }
-    }
-    delay(1000);
-  }
-}
-
-void parkingMode() {
-  Serial.println("Entering Parking Mode");
-
-  digitalWrite(LED_PIN, LOW); // initially turning off LED
-  ledState = false;
-  setupAccelerometer();
-  
-  setupWiFi(); //setting up wifi
-  setupLoRa(); //setting up LoRa
-
-  active = false;
-  parked = true;
-
-  while (parked) {
-    float battery = readBattery();
-    if (battery <= 20.0) {
-      static unsigned long lastWarningPark = 0;
-      if (millis() - lastWarningPark > 15 * 60 * 1000) { // every 15 min
-        //as we are in parking mode - and seek not to disturb the passing pedestrians - we do not sound the Battery warning
-        lastWarningPark = millis();
-      }
-    }
-        
-    if (isMovingNow()) {
-      Serial.println("Movement detected. Switching to Active Mode.");
-      activeMode();
-      break;
-    }
-
-    checkIncomingMessage();
-    delay(1000);
-  }
-}
-
-void storageMode() {
-  Serial.println("Entering Storage Mode");
-
-  digitalWrite(LED_PIN, LOW); //turning off LED
-  ledState = false;
-  turnOffAccelerometer(); 
-  setupWiFi(); //setting up wifi
-  setupLoRa(); //setting up LoRa
-  
-  active = false;
-  parked = false;
-
-  while (!active && !parked) {
-    float battery = readBattery();
-    if (battery <= 20.0) {
-      static unsigned long lastWarningStore = 0;
-      if (millis() - lastWarningStore > 60 * 60 * 1000) { // every hour
-        lastWarningStore = millis();
-      }
-    }
-    checkIncomingMessage();
-    delay(1000);
-  }
-}
-
-////// HELPER FUNCTIONS //////
 
 float req_mod() {
   if (active == true) {
@@ -416,14 +403,12 @@ float readBattery() {
   float vPin = (raw * ADC_CORRECTION * 3.3 / 4095.0);
   float batteryVoltage = vPin * (R1 + R2) / R2;
   float batteryCharge = mapBatteryPercentage(batteryVoltage);
-
-  Serial.print("Charge: ");
-  Serial.print(batteryCharge);
-  Serial.print("% | Raw ADC: ");
-  Serial.print(raw);
-  Serial.print(" | Voltage: ");
-  Serial.println(vPin);
-
+  // Serial.print("Charge: ");
+  // Serial.print(batteryCharge);
+  // Serial.print("% | Raw ADC: ");
+  // Serial.print(raw);
+  // Serial.print(" | Voltage: ");
+  // Serial.println(vPin);
   return batteryCharge;
 }
 
@@ -451,8 +436,6 @@ void playCriticalBatteryWarning() {
   tone(SOUND_PIN, melody, duration);
 }
 
-
-
 // Encode 2 floats (lat, lon) into 8 bytes (4 bytes each, IEEE 754)
 void send_gps(float latitude, float longitude) {
   Serial.println("Sending GPS coordinates to TTN...");
@@ -471,12 +454,10 @@ void send_gps(float latitude, float longitude) {
  * @brief Sends GPS coordinates encoded in IEEE 754 format to TTN.
  * @param latitude Latitude value (float)
  * @param longitude Longitude value (float)
+**/
 
- */
 void request_gps() {
   Serial.println("GPS request triggered. Getting fake coordinates...");
- 
-    
 
   // this hardcoded latitude and longitude need to be replaced with the actual latitude and longitude retrieved by the GNSS
   float fake_lat = 55.6761;  // Example: Copenhagen latitude (to be deleted)
