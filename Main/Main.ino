@@ -107,17 +107,17 @@ void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
     switch (command) {
       case 0x02:
         Serial.println("Command recieved: activeMode");
-        activeMode();
+        current_mode = 0; // activeMode
         break;
 
       case 0x03:
         Serial.println("Command recieved: parkingMode");
-        parkingMode();
+        current_mode = 1; // parkingMode
         break;
 
       case 0x04:
         Serial.println("Command recieved: storageMode");
-        storageMode();
+        current_mode = 2; // storageMode
         break;
 
       case 0x05:
@@ -148,7 +148,8 @@ void setup() {
 
   // Set up pins
   pinMode(LED_PIN, OUTPUT);
-  pinMode(SOUND_PIN, OUTPUT);
+  // pinMode(SOUND_PIN, OUTPUT);
+
 
   //I2C
   Wire.begin(SDA_PIN,SCL_PIN);
@@ -162,15 +163,10 @@ void setup() {
   // Setup Accelerometer (if necessary)
   setupAccelerometer();
 
-  // Setup Button if needed
-  // pinMode(BUTTON_PIN, INPUT_PULLUP); // Example if using a physical button
+  Setup Button if needed
+  pinMode(BUTTON_PIN, INPUT_PULLUP); // Example if using a physical button
   
   current_mode = 1; // Start in parking mode
-  modeSwitcher();
-}
-
-void loop() {
-  // Does nothing
 }
 
 /**
@@ -178,19 +174,17 @@ void loop() {
  * which are stored in the 'current_mode' variable.
  * 0 : Active Mode \\ 1 : Parking Mode \\ 2 : Storage Mode
 **/
-void modeSwitcher(){
-  while(true){
-    switch (current_mode) {
-      case 0:
-        current_mode = activeMode();
-        break;
-      case 1:
-        current_mode = parkingMode();
-        break;
-      case 2:
-        current_mode = storageMode();
-        break;
-    }
+void loop() {
+  switch (current_mode) {
+    case 0:
+      current_mode = activeMode();
+      break;
+    case 1:
+      current_mode = parkingMode();
+      break;
+    case 2:
+      current_mode = storageMode();
+      break;
   }
 }
 
@@ -212,6 +206,8 @@ int activeMode() {
 
   // Main loop in Active Mode //
   while (active) {
+    Serial.println("CHECKING LORA FROM ACTIVE...");
+    checkLoRa();
     float battery = readBattery();
 
     // Critical battery warning
@@ -231,6 +227,7 @@ int activeMode() {
     } else {
       // Serial.print("TOO LITTLE LIGHT:"); Serial.println(readPhotoresistor());
       digitalWrite(LED_PIN, HIGH);
+      ledState = true;
     }
 
     // Movement detection
@@ -278,7 +275,9 @@ int parkingMode() {
       current_mode = 0;
       return current_mode;
     }
-    delay(1000);
+    Serial.println("CHECKING LORA FROM PARKING...");
+    checkLoRa();
+    delay(3000); // every 3 sec
   }
 }
 
@@ -298,6 +297,8 @@ int storageMode() {
 
   // Main loop in Storage Mode //
   while (!active && !parked) {
+    Serial.println("CHECKING LORA FROM STORAGE...");
+    checkLoRa();
     delay(1000);
   }
 }
@@ -306,7 +307,6 @@ int storageMode() {
 
 void checkLoRa(){
   unsigned long currentMillis = millis();
-
   switch (deviceState) {
     case DEVICE_STATE_INIT:
       LoRaWAN.init(loraWanClass, loraWanRegion);
