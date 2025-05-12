@@ -23,9 +23,9 @@ arguments: none
 returns: void
 #######*/
 void setupPhotoresistor() {
-  pinMode(TURN_ON_PHOTORESISTOR_PIN, OUTPUT);
+  //pinMode(TURN_ON_PHOTORESISTOR_PIN, OUTPUT);
   pinMode(PHOTO_RES_1, INPUT);
-  digitalWrite(TURN_ON_PHOTORESISTOR_PIN, HIGH);
+  //digitalWrite(TURN_ON_PHOTORESISTOR_PIN, HIGH);
 }
 /*###
 This function reads the output making it through the photoresistor
