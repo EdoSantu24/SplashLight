@@ -19,6 +19,8 @@ float accelThreshold = 0.2; //#0
 unsigned long idleTimeout = 30000;
 unsigned long lastMovementTime = 0;
 bool isMoving = false;
+bool p_unable = false;
+bool isMeantToBeOn = true;
 char in_message2[100]; // Used to pass message to print between functions
 /*###
 This function sets up the accelerometers digital representation, and calibrates it.
@@ -29,6 +31,8 @@ arguments: none
 returns: void
 #######*/
 void setupAccelerometer() {
+  p_unable = false;
+  isMeantToBeOn = true;
   pinMode(TURN_ON_ACCELEROMETER_PIN, OUTPUT);
   digitalWrite(TURN_ON_ACCELEROMETER_PIN, LOW);
   delay(1000);
@@ -59,6 +63,8 @@ arguments: none
 returns: void
 #######*/
 void turnOffAccelerometer() {
+    p_unable = false;
+    isMeantToBeOn = false;
     pinMode(TURN_ON_ACCELEROMETER_PIN, OUTPUT);
     //accelo.end(); //not a function
     //Serial.println("AAAAAAAAAAAAAAAAAAHHHHHHHHHH");
@@ -78,6 +84,31 @@ returns: a AccelData struct, which contains the read data.
 ######*/
 AccelData readAccelerometerData() {
   AccelData data;
+  if(accelo.isConnected()) {
+    
+    
+    if(p_unable){
+      if(isMeantToBeOn){
+        Serial.println("REBOOT gy521");
+        setupAccelerometer();
+      } else {
+        Serial.println("UNAUTHORIZED CALL TO READ - THE ACCELEROMETER IS NOT MEANT TO BE ON\n!\n!\n!\n!\n!\n!");
+      }
+    }
+  }
+  else{
+    
+    if(isMeantToBeOn){
+      Serial.println("gy521 FAILED");
+      accelo.reset();
+      p_unable = true;
+    } else {
+      Serial.println("UNAUTHORIZED CALL TO READ - THE ACCELEROMETER IS NOT MEANT TO BE ON\n!\n!\n!\n!\n!\n!");
+    }
+    
+  }
+  
+  
   accelo.read();
   
   data.ax = accelo.getAccelX();
