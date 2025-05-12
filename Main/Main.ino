@@ -61,8 +61,8 @@ const unsigned long txInterval = 15000;       // Data TX every 30s
 // Define pins
 #define BUTTON_PIN_BITMASK(GPIO) (1ULL << GPIO)  // 2 ^ GPIO_NUMBER
 #define VOLTAGE_PIN 4
-#define LED_PIN 5
-#define SOUND_PIN 18
+#define LED_PIN 19
+#define SOUND_PIN 2
 #define SDA_PIN 6
 #define SCL_PIN 7
 // #define WIFI_PIN 21 // optional if needed to enable WiFi manually
@@ -171,10 +171,10 @@ void setup() {
   Wire.begin(SDA_PIN,SCL_PIN);
   //accelerometer
   setupAccelerometer();
-  setAccelerometerThresholds(2, 10000);
+  setAccelerometerThresholds(20, 10000);
   //photoresistor
   setupPhotoresistor();
-  setPhotoresistorThreshold(2000);
+  setPhotoresistorThreshold(500);
 
   // Setup WiFi
   setupWiFi(); //#1
@@ -187,7 +187,7 @@ void setup() {
 
   // Setup Button if needed
   // pinMode(BUTTON_PIN, INPUT_PULLUP); // Example if using a physical button
-
+  
   parkingMode(); // Start in parking mode
 }
 /**
@@ -282,7 +282,7 @@ void activeMode() {
 
   digitalWrite(LED_PIN, LOW); // initially turning off LED
   ledState = false;
-  turnOffAccelerometer();
+  setupAccelerometer();
   setupWiFi(); // setting up WiFi
   setupLoRa(); // setting up LoRa
 
@@ -303,9 +303,16 @@ void activeMode() {
 
     bool lightDetected = checkLightThreshold(-30); //the argument is not used - but as git might incur merge conflicts, we decide to leave it unremoved from the function declaration/definition
     if (lightDetected) {
-      digitalWrite(LED_PIN, HIGH);
-    } else {
+
+    
+      //delay(1000);
+
+      Serial.print("TOO MUCH LIGHT:"); Serial.println(readPhotoresistor());
+
       digitalWrite(LED_PIN, LOW);
+    } else {
+      Serial.print("TOO LITTLE LIGHT:"); Serial.println(readPhotoresistor());
+      digitalWrite(LED_PIN, HIGH);
     }
     bool movement = isMovingNow();
     if (!movement) {
@@ -336,7 +343,7 @@ void parkingMode() {
 
   digitalWrite(LED_PIN, LOW); // initially turning off LED
   ledState = false;
-  turnOffAccelerometer();
+  setupAccelerometer();
   
   setupWiFi(); //setting up wifi
   setupLoRa(); //setting up LoRa
@@ -353,12 +360,13 @@ void parkingMode() {
         lastWarningPark = millis();
       }
     }
-
+        
     if (isMovingNow()) {
       Serial.println("Movement detected. Switching to Active Mode.");
       activeMode();
       break;
     }
+
     checkIncomingMessage();
     delay(1000);
   }
@@ -369,7 +377,7 @@ void storageMode() {
 
   digitalWrite(LED_PIN, LOW); //turning off LED
   ledState = false;
-  setupAccelerometer(); 
+  turnOffAccelerometer(); 
   setupWiFi(); //setting up wifi
   setupLoRa(); //setting up LoRa
   
