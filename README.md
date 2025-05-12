@@ -1,4 +1,22 @@
 # BikeProject
+Welcome to the BikeProject repository! This project is a collaborative effort to create a smart bike light system that turns automatically on/off, as well as enhancing safety for cyclists. Below you will find an overview of the project, as well as how to get started with the code and hardware.
+
+## Project Overview
+For this project, we have used the ESP32-C3 microcontroller that has a built-in Wi-Fi and LoRa module. This microcontroller allows us to be able to remotely control and monitor the bike light as well as the bike itself. The bike light is designed to be energy-efficient, to extend battery life as much as possible. The code for the project is written in the Arduino programming language, which based on C/C++.
+For this smart light project, the following modules are required:
+- ESP32-C3 microcontroller
+- Battery
+- Battery charger
+- Voltage regulator
+- Accelerometer
+- P-MOSFET
+- LED light
+- Photoresistor
+- Buzzer
+- Physical button
+- Resistors
+
+## Getting Started
 
 ## Required features of Bike Light
 - (HT) Based on ESP32 microcontroller.
