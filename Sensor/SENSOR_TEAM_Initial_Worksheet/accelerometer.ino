@@ -19,7 +19,7 @@ float accelThreshold = 0.2; //#0
 unsigned long idleTimeout = 30000;
 unsigned long lastMovementTime = 0;
 bool isMoving = false;
-
+char in_message2[100]; // Used to pass message to print between functions
 /*###
 This function sets up the accelerometers digital representation, and calibrates it.
   #2 Currently it does not have a deactivation equivalent variant and neither will it react appropiately if the accelerometer is not connected (correct behaviour would be to fail, or return "false" - because thats Arduino's convention).
@@ -108,7 +108,7 @@ void float_to_string_simpl(float input){
   String tim = String((int)input);
   tim += "|";
   int len = tim.length();
-  tim.toCharArray(in_message,100); 
+  tim.toCharArray(in_message2,100); 
 
 
 /*### 
