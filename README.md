@@ -20,10 +20,10 @@ For this smart light project, the following modules are required:
 Put this in "File -> preferences -> Additional Boards manager URLs" (REMEMBER TO SEPERATE MULTIPLE LINKS WITH COMMA!!!): https://resource.heltec.cn/download/package_heltec_esp32_index.json
 
 Remember the following board managers:
-Heltec ESP32 Series Dev-boards
+ - Heltec ESP32 Series Dev-boards
 
 Remember to get the following libraries:
-Adafruit_GFX.h
+ - Adafruit_GFX.h
 
 ## Required features of Bike Light
 - (HT) Based on ESP32 microcontroller.
