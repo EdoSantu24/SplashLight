@@ -62,7 +62,7 @@ void turnOffAccelerometer() {
     pinMode(TURN_ON_ACCELEROMETER_PIN, OUTPUT);
     //accelo.end(); //not a function
     //Serial.println("AAAAAAAAAAAAAAAAAAHHHHHHHHHH");
-    //accelo.reset();
+    accelo.reset();
     delay(10);
     digitalWrite(TURN_ON_ACCELEROMETER_PIN,HIGH);
 }
@@ -141,6 +141,7 @@ void print_accelometer_res(){
   
     Serial.println(gz);
       Serial.println(gy);
+      Serial.println(sqrt(sq(ax) + sq(ay) + sq(az)));
   //new line, because the above calls make no new line.
   Serial.println("");
 
@@ -176,7 +177,10 @@ arguments:
 returns: a bool which tells if the acceleration indicates movement currently.
 #######*/
 bool checkMovementThreshold(AccelData data) {
-  float speedDiff = sqrt(sq(data.ax) + sq(data.ay) + sq(data.az)); // Now includes Z-axis
+  float speedDiff = sqrt(sq(data.gx) + sq(data.gy) + sq(data.gz)); // Now includes Z-axis
+  //Serial.println(accelThreshold);
+  //Serial.println(sqrt(sq(data.gx) + sq(data.gy) + sq(data.gz)));
+  //Serial.println(speedDiff > accelThreshold);
   return speedDiff > accelThreshold;
 }
 
