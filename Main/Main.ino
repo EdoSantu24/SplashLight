@@ -58,7 +58,7 @@ const unsigned long txInterval = 15000;       // Data TX every 30s
 #define BUTTON_PIN_BITMASK(GPIO) (1ULL << GPIO)  // 2 ^ GPIO_NUMBER
 #define VOLTAGE_PIN 4
 #define LED_PIN 19
-#define SOUND_PIN 2
+#define SOUND_PIN 45
 #define SDA_PIN 6
 #define SCL_PIN 7
 // #define WIFI_PIN 21 // optional if needed to enable WiFi manually
@@ -151,20 +151,21 @@ void setup() {
   // pinMode(SOUND_PIN, OUTPUT);
 
 
-  //I2C
+  // I2C
   Wire.begin(SDA_PIN,SCL_PIN);
-  //accelerometer
+  // Accelerometer
   setupAccelerometer();
   setAccelerometerThresholds(20, 10000);
-  //photoresistor
+
+  // Photoresistor
   setupPhotoresistor();
   setPhotoresistorThreshold(500);
 
   // Setup Accelerometer (if necessary)
   setupAccelerometer();
 
-  Setup Button if needed
-  pinMode(BUTTON_PIN, INPUT_PULLUP); // Example if using a physical button
+  // Setup Button if needed
+  // pinMode(BUTTON_PIN, INPUT_PULLUP); // Example if using a physical button
   
   current_mode = 1; // Start in parking mode
 }
@@ -206,8 +207,8 @@ int activeMode() {
 
   // Main loop in Active Mode //
   while (active) {
-    Serial.println("CHECKING LORA FROM ACTIVE...");
-    checkLoRa();
+    // Serial.println("CHECKING LORA FROM ACTIVE...");
+    // checkLoRa();
     float battery = readBattery();
 
     // Critical battery warning
@@ -275,8 +276,8 @@ int parkingMode() {
       current_mode = 0;
       return current_mode;
     }
-    Serial.println("CHECKING LORA FROM PARKING...");
-    checkLoRa();
+    // Serial.println("CHECKING LORA FROM PARKING...");
+    // checkLoRa();
     delay(3000); // every 3 sec
   }
 }
@@ -311,6 +312,7 @@ void checkLoRa(){
     case DEVICE_STATE_INIT:
       LoRaWAN.init(loraWanClass, loraWanRegion);
       LoRaWAN.setDefaultDR(3);
+      Serial.print("INIT DONE");
       break;
 
     case DEVICE_STATE_JOIN:
