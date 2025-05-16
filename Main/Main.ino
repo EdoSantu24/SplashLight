@@ -268,6 +268,7 @@ int activeMode() {
       if (!movement) {
         Serial.println("No movement after countdown. Switching to Parking Mode.");
         current_mode = 1; // Switching to parking mode
+        send_mode();
         return current_mode;
       }
     }
@@ -302,6 +303,7 @@ int parkingMode() {
     if (isMovingNow()) {
       Serial.println("Movement detected. Switching to Active Mode.");
       current_mode = 0;
+      send_mode();
       return current_mode;
     }
     // Serial.println("CHECKING LORA FROM PARKING...");
@@ -421,10 +423,10 @@ void checkLoRa(){
 }
 
 float req_mod() {
-  if (active == true) {
+  if (current_mode == 0) {
     return 0x02; //hex 02 is active
   }
-  else if (parked == true) {
+  else if (current_mode == 1) {
     return 0x03; //hex 03 is parked
   } 
   else {
@@ -471,6 +473,15 @@ void playCriticalBatteryWarning() {
   tone(SOUND_PIN, melody, duration);
 }
 
+void send_mode() {
+  Serial.println("Sending mode to TTN...");
+
+  appDataSize = 1;
+  appData[0] = req_mod();
+
+  LoRaWAN.send();
+}
+
 // Encode 2 floats (lat, lon) into 8 bytes (4 bytes each, IEEE 754)
 void send_gps(float latitude, float longitude) {
   Serial.println("Sending GPS coordinates to TTN...");
@@ -502,6 +513,3 @@ void request_gps() {
 
   send_gps(fake_lat, fake_lon); //sending latitude and longitude
 }
-
-
-
