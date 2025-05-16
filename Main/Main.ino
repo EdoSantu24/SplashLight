@@ -41,6 +41,7 @@ uint8_t confirmedNbTrials = 4;
 /* Startup sequence flags and counters */
 bool firstJoinDone = false;
 uint8_t startupMessageStep = 0;
+bool joinedLoRa = false;
 
 
 bool ledState = false;
@@ -71,7 +72,10 @@ const float ADC_CORRECTION = 0.8;  // Calibration factor
 // Variables
 bool active = false;
 bool parked = true;
-int current_mode = 0; // 0 = ACTIVE MODE | 1 = PARKING MODE | 2 = STORAGE MODE
+
+volatile int current_mode = 0; // 0 = ACTIVE MODE | 1 = PARKING MODE | 2 = STORAGE MODE
+volatile bool interrupted = false; // When interrupted by downlink this variable changes
+
 
 /**
  * Prepares the application payload for regular transmissions.
@@ -104,6 +108,8 @@ void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
 
     uint8_t command = mcpsIndication->Buffer[0];
 
+    interrupted = true;
+
     switch (command) {
       case 0x02:
         Serial.println("Command recieved: activeMode");
@@ -118,6 +124,11 @@ void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
       case 0x04:
         Serial.println("Command recieved: storageMode");
         current_mode = 2; // storageMode
+        interrupted = true;
+        Serial.print("mode: "); 
+        Serial.println(current_mode);
+        Serial.print("Interrupted? "); 
+        Serial.println(interrupted);
         break;
 
       case 0x05:
@@ -126,8 +137,9 @@ void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
         break;
 
       default:
-        Serial.print("Commando unknown: 0x");
+        Serial.print("Command unknown: 0x");
         Serial.println(command, HEX);
+        interrupted = false;
         break;
     }
   }
@@ -162,7 +174,7 @@ void setup() {
   setPhotoresistorThreshold(500);
 
   // Setup Accelerometer (if necessary)
-  setupAccelerometer();
+  // setupAccelerometer();
 
   // Setup Button if needed
   // pinMode(BUTTON_PIN, INPUT_PULLUP); // Example if using a physical button
@@ -176,6 +188,9 @@ void setup() {
  * 0 : Active Mode \\ 1 : Parking Mode \\ 2 : Storage Mode
 **/
 void loop() {
+  // while (!joinedLoRa) {
+  //   checkLoRa();
+  // }
   switch (current_mode) {
     case 0:
       current_mode = activeMode();
@@ -207,11 +222,16 @@ int activeMode() {
 
   // Main loop in Active Mode //
   while (active) {
-    // Serial.println("CHECKING LORA FROM ACTIVE...");
-    // checkLoRa();
-    float battery = readBattery();
+
+    // Check if it was interrupted by downlink message
+    if (interrupted){
+      interrupted = false;
+      return current_mode;
+    }
+    checkLoRa();
 
     // Critical battery warning
+    float battery = readBattery();
     if (battery <= 20.0) { 
       static unsigned long lastWarningAct = 0;
       if (millis() - lastWarningAct > 60 * 1000) { // every 60 sec
@@ -270,7 +290,15 @@ int parkingMode() {
   parked = true;
 
   // Main loop in Parking Mode //
-  while (parked) {        
+  while (parked) {  
+
+    // Check if it was interrupted by downlink message
+    if (interrupted){
+      interrupted = false;
+      return current_mode;
+    }
+
+    checkLoRa();
     if (isMovingNow()) {
       Serial.println("Movement detected. Switching to Active Mode.");
       current_mode = 0;
@@ -278,7 +306,7 @@ int parkingMode() {
     }
     // Serial.println("CHECKING LORA FROM PARKING...");
     // checkLoRa();
-    delay(3000); // every 3 sec
+    // delay(2000); // every 3 sec
   }
 }
 
@@ -298,9 +326,11 @@ int storageMode() {
 
   // Main loop in Storage Mode //
   while (!active && !parked) {
-    Serial.println("CHECKING LORA FROM STORAGE...");
+    if (interrupted){
+      interrupted = false;
+      return current_mode;
+    }
     checkLoRa();
-    delay(1000);
   }
 }
 
@@ -312,12 +342,13 @@ void checkLoRa(){
     case DEVICE_STATE_INIT:
       LoRaWAN.init(loraWanClass, loraWanRegion);
       LoRaWAN.setDefaultDR(3);
-      Serial.print("INIT DONE");
+      Serial.println("INIT DONE");
       break;
 
     case DEVICE_STATE_JOIN:
       LoRaWAN.join();
-      firstJoinDone = true; // Appena completato il join
+      Serial.println("JOIN done?");
+      firstJoinDone = true; // When joined is connected
       startupMessageStep = 0;
       break;
 
@@ -359,6 +390,7 @@ void checkLoRa(){
 
         if (startupMessageStep >= 6) {
               firstJoinDone = false; 
+              joinedLoRa = true;
         }
 
         deviceState = DEVICE_STATE_CYCLE;
@@ -401,12 +433,13 @@ float req_mod() {
 }
 
 float readBattery() {
+  return 60.0;
   int raw = analogRead(VOLTAGE_PIN);
   float vPin = (raw * ADC_CORRECTION * 3.3 / 4095.0);
   float batteryVoltage = vPin * (R1 + R2) / R2;
   float batteryCharge = mapBatteryPercentage(batteryVoltage);
-  // Serial.print("Charge: ");
-  // Serial.print(batteryCharge);
+  Serial.print("Charge: ");
+  Serial.println(batteryCharge);
   // Serial.print("% | Raw ADC: ");
   // Serial.print(raw);
   // Serial.print(" | Voltage: ");
