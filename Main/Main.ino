@@ -60,8 +60,8 @@ const unsigned long txInterval = 15000;       // Data TX every 30s
 #define VOLTAGE_PIN 4
 #define LED_PIN 19
 #define SOUND_PIN 45
-#define SDA_PIN 6
-#define SCL_PIN 7
+#define SDA_PIN 2
+#define SCL_PIN 9
 // #define WIFI_PIN 21 // optional if needed to enable WiFi manually
 
 // Constants for battery status calculation
