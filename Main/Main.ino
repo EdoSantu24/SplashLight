@@ -15,6 +15,7 @@
 
 //for the led, there is a variable called ledState that keeps track of the status of the led, please put it true/false, when you update the status of the led
 #include "LoRaWan_APP.h"
+#include "HT_TinyGPS++.h"
 //START LoraWAN Setups
 
 
@@ -53,15 +54,24 @@ int counter = 1;
 unsigned long lastTx = 0;
 const unsigned long txInterval = 15000;       // Data TX every 30s
 
+// GPS variables
+TinyGPSPlus gps;
+HardwareSerial gpsSerial(2);
+
 //END of LoraWAN setups
 
 // Define pins
 #define BUTTON_PIN_BITMASK(GPIO) (1ULL << GPIO)  // 2 ^ GPIO_NUMBER
-#define VOLTAGE_PIN 4
-#define LED_PIN 19
-#define SOUND_PIN 45
 #define SDA_PIN 2
 #define SCL_PIN 9
+
+
+// NOT USED PINS
+#define SOUND_PIN 45
+#define VOLTAGE_PIN 4
+#define LED_PIN 19
+#define GPS_PIN1 46
+#define GPS_PIN2 47
 // #define WIFI_PIN 21 // optional if needed to enable WiFi manually
 
 // Constants for battery status calculation
@@ -162,12 +172,14 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   // pinMode(SOUND_PIN, OUTPUT);
 
+  // Set up GPS
+  gpsSerial.begin(115200, SERIAL_8N1, GPS_PIN1, GPS_PIN2);
 
   // I2C
   Wire.begin(SDA_PIN,SCL_PIN);
   // Accelerometer
   setupAccelerometer();
-  setAccelerometerThresholds(20, 10000);
+  setAccelerometerThresholds(50, 10000);
 
   // Photoresistor
   setupPhotoresistor();
@@ -188,9 +200,9 @@ void setup() {
  * 0 : Active Mode \\ 1 : Parking Mode \\ 2 : Storage Mode
 **/
 void loop() {
-  // while (!joinedLoRa) {
-  //   checkLoRa();
-  // }
+  while (!joinedLoRa) {
+    checkLoRa();
+  }
   switch (current_mode) {
     case 0:
       current_mode = activeMode();
@@ -217,6 +229,7 @@ int activeMode() {
   ledState = false;
   setupAccelerometer();
 
+  // send_mode();
   active = true;
   parked = false;
 
@@ -257,23 +270,21 @@ int activeMode() {
       Serial.println("No movement detected. Starting countdown.");
       unsigned long countdownStart = millis();
       
-      while (millis() - countdownStart < 30000) { // 30s countdown, checking every 3 sec
+      while (millis() - countdownStart < 15000) { // 30s countdown, checking every 3 sec
         movement = isMovingNow();
         if (movement) {
           Serial.println("Movement detected, resetting active mode.");
           break;
         }
-        delay(3000); // Check every 3 seconds
       }
       if (!movement) {
         Serial.println("No movement after countdown. Switching to Parking Mode.");
         current_mode = 1; // Switching to parking mode
-        send_mode();
         return current_mode;
       }
     }
-    delay(1000);
   }
+  return current_mode;
 }
 
 /**
@@ -287,6 +298,7 @@ int parkingMode() {
   ledState = false;
   setupAccelerometer();
 
+  // send_mode();
   active = false;
   parked = true;
 
@@ -300,16 +312,17 @@ int parkingMode() {
     }
 
     checkLoRa();
+
     if (isMovingNow()) {
       Serial.println("Movement detected. Switching to Active Mode.");
       current_mode = 0;
-      send_mode();
       return current_mode;
     }
     // Serial.println("CHECKING LORA FROM PARKING...");
     // checkLoRa();
     // delay(2000); // every 3 sec
   }
+  return current_mode;
 }
 
 /**
@@ -334,6 +347,7 @@ int storageMode() {
     }
     checkLoRa();
   }
+  return current_mode;
 }
 
 ////// HELPER FUNCTIONS //////
@@ -349,7 +363,7 @@ void checkLoRa(){
 
     case DEVICE_STATE_JOIN:
       LoRaWAN.join();
-      Serial.println("JOIN done?");
+      // Serial.println("JOIN done?");
       firstJoinDone = true; // When joined is connected
       startupMessageStep = 0;
       break;
@@ -501,14 +515,21 @@ void send_gps(float latitude, float longitude) {
  * @param latitude Latitude value (float)
  * @param longitude Longitude value (float)
 **/
-
 void request_gps() {
   Serial.println("GPS request triggered. Getting fake coordinates...");
 
+  float fake_lat = 55.6761;
+  float fake_lon = 12.5683;
+
+  if (gpsSerial.available()) {
+    gps.encode(gpsSerial.read());
+  }
+  // Print GPS location if available
+  if (gps.location.isUpdated()) {
+    fake_lat = gps.location.lat();
+    fake_lon = gps.location.lng();
+  }
   // this hardcoded latitude and longitude need to be replaced with the actual latitude and longitude retrieved by the GNSS
-  float fake_lat = 55.6761;  // Example: Copenhagen latitude (to be deleted)
-  float fake_lon =  12.5683;  // Example: Copenhagen longitude (to be deleted)
- 
   counter = 0;
 
   send_gps(fake_lat, fake_lon); //sending latitude and longitude
