@@ -1,51 +1,45 @@
 ## Communication Team
 
-### Communication Technology: LoRaWAN
+### Communication Technology: LoRaWAN and TTN
 
 - **HT-CT62 ESP32C3 SX1262 LoRa Nodemodule Bluetooth LoRaWAN Node** (https://docs.heltec.cn/en/node/esp32/ht_ct62/index.html)
 - Low latency and low energy consumption
-- **TTN** (or **Chirpstack**) for network coverage in Denmark: support MQTT broker (HiveMQ)
-- Bidirectional communication (light <-> LoreWAN gateways <-> MQTT broker)
+- **TTN** for network coverage in Copenhagen
+- Communication between the ESP32C3 is handled by LoRaWAN gateways and exchange of messages can be seen from the TTN dashboard.
 
 ---
 
 ### Communication Protocol for backend: MQTT
 
-- Supports bidirectional communication (backend app/dashboard IoT <-> MQTT broker)
+- Communication with the mobile application relies on MQTT protocol.
+- Using TTN's MQTT built-in broker and a private HiveMQ Broker.
 - Energy efficient and low latency
 - **Quality of Service (QoS)** support: Provides flexibility on message delivery
 - **Pub/Sub technology**: Enables deep sleep mode on the device to conserve energy
-- Compatible with TTN
 - MQTT broker options: **HiveMq**
-  - Integrating ESP32 with LoRaWAN and HiveMQ MQTT Broker: https://www.hivemq.com/blog/integrating-esp32-lorawan-hivemq-mqtt-broker-advanced-iot/
-  - LoRaWAN and MQTT Integration for IoT Application Design:  https://www.hivemq.com/blog/lorawan-and-mqtt-integrations-for-iot-applications-design/
-  - Hands-on Guide to LoRaWAN and HiveMQ MQTT Broker Integration for IoT: https://www.hivemq.com/blog/handson-guide-lorawan-hivemq-mqtt-broker-integration-iot/
-  - Creating a private MQTT Broker with HiveMQ
-  - It has it's own API to retrieve data and send to a database/application (GPS data, battery statistics, route history...)
 ---
 
-### Backend
+### Backend: NodeRed and Oracle Cloud VM
+- Communication between the two MQTT broker relies on NodeRed installed on a VM hosted on the cloud
+- Cloud VM is provided by Oracle Cloud
+- **NodeRed** act as bridge between the TTN MQTT broker and the private HiveMQ broker. It also act as a translator for the messages transmitted by the device (hex format) to json format used by the android application.
 
-- **Database for data storage** (route history, light status, theft alarm): 
-  - Technologies: Node.js and PostgreSQL (to decide: Explore alternative solutions)
-  - has to be on the cloud?
 ---
 
-### Frontend
+### Frontend: Android Application
+- Android app developed on Flutter using Android Studio.
+- Provide remote control and monitor features including:
+- **LED Control** – Turn the bike light ON or OFF remotely.
+- **Battery Status** – View the device’s current battery level.
+- **Low Battery Notification** – Receive an alert when the battery drops below 20%.
+- **Mode Selection** – Switch between:
+  - *Active Mode*
+  - *Parking Mode*
+  - *Storage Mode*
+- **GPS Integration** – Request and view the device’s real-time location.
+- **Live Map Display** – See both your position and the light’s position using OpenStreetMap.
+- **MQTT Communication** – Communicates with the smart light through MQTT protocol.
 
-- **Dashboard for display, control, and monitoring**: 
-  - To decide: Custom Android app, **Blynk**, or web dashboard (using **React** or **Flutter**)
-  
-- **Monitoring Features**:
-  - GPS data
-  - General statistics: Battery status, route history (e.g., km)
-  - **Geofencing Alarm**: Receive a notification if the bike leaves a predefined area
-  - **Anti-theft Mode**: Notification if the bike moves without authorization (e.g., identification via phone; if the bike is used without having the phone with you)
 
-- **Control Features**:
-  - Turn the light on/off via app
-  - Change configurations/settings: Notifications, alarm settings, dark mode, etc.
-
-- **Security** (to be determined?)
 
 ---
