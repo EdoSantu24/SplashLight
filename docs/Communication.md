@@ -29,16 +29,16 @@
 ### Frontend: Android Application
 - Android app developed on Flutter using Android Studio.
 - Provide remote control and monitor features including:
-- **LED Control** – Turn the bike light ON or OFF remotely.
-- **Battery Status** – View the device’s current battery level.
-- **Low Battery Notification** – Receive an alert when the battery drops below 20%.
-- **Mode Selection** – Switch between:
-  - *Active Mode*
-  - *Parking Mode*
-  - *Storage Mode*
-- **GPS Integration** – Request and view the device’s real-time location.
-- **Live Map Display** – See both your position and the light’s position using OpenStreetMap.
-- **MQTT Communication** – Communicates with the smart light through MQTT protocol.
+  - **LED Control** – Turn the bike light ON or OFF remotely.
+  - **Battery Status** – View the device’s current battery level.
+  - **Low Battery Notification** – Receive an alert when the battery drops below 20%.
+  - **Mode Selection** – Switch between:
+    - *Active Mode*
+    - *Parking Mode*
+    - *Storage Mode*
+  - **GPS Integration** – Request and view the device’s real-time location.
+  - **Live Map Display** – See both your position and the light’s position using OpenStreetMap.
+  - **MQTT Communication** – Communicates with the smart light through MQTT protocol.
 
 
 
