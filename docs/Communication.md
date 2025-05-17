@@ -5,7 +5,7 @@
 - **HT-CT62 ESP32C3 SX1262 LoRa Nodemodule Bluetooth LoRaWAN Node** (https://docs.heltec.cn/en/node/esp32/ht_ct62/index.html)
 - Low latency and low energy consumption
 - **TTN** for network coverage in Copenhagen
-- Communication between the ESP32C3 is handled by LoRaWAN gateways and exchange of messages can be seen from the TTN dashboard.
+- Communication between the ESP32C3 is handled by LoRaWAN gateways and exchange of messages can be seen from TTN dashboard.
 
 ---
 
