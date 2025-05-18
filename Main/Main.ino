@@ -1,5 +1,5 @@
 
-// Libraries
+// Libraries //
 
 #include <WiFi.h>
 #include <Wire.h>
@@ -8,16 +8,11 @@
 #include <../Sensor/SENSOR_TEAM_Initial_Worksheet/photoresistor.h>
 #include <../Sensor/SENSOR_TEAM_Initial_Worksheet/accelerometer.ino>
 #include <../Sensor/SENSOR_TEAM_Initial_Worksheet/photoresistor.ino>
-//#include <loramac/LoRaMac.h>
-// #include <LoRa.h> // LoRa libraries
-// #include <Adafruit_Sensor.h> // Example for accelerometer
-// #include <Adafruit_LIS3DH.h> // Example accelerometer
 
-//for the led, there is a variable called ledState that keeps track of the status of the led, please put it true/false, when you update the status of the led
 #include "LoRaWan_APP.h"
 #include "HT_TinyGPS++.h"
-//START LoraWAN Setups
 
+// ###### LoRaWAN Setups ##### //
 
 /* OTAA keys */
 uint8_t devEui[] = { 0x70, 0xB3, 0xD5, 0x7E, 0xD0, 0x06, 0x53, 0xC8 };
@@ -58,13 +53,12 @@ const unsigned long txInterval = 15000;       // Data TX every 30s
 TinyGPSPlus gps;
 HardwareSerial gpsSerial(2);
 
-//END of LoraWAN setups
+// ##### END of LoraWAN setups ###### //
 
 // Define pins
 #define BUTTON_PIN_BITMASK(GPIO) (1ULL << GPIO)  // 2 ^ GPIO_NUMBER
 #define SDA_PIN 2
 #define SCL_PIN 9
-
 
 // NOT USED PINS
 #define SOUND_PIN 45
@@ -88,22 +82,217 @@ volatile bool interrupted = false; // When interrupted by downlink this variable
 
 
 /**
- * Prepares the application payload for regular transmissions.
- * Alternates between sending LED state and battery level.
- */
-static void prepareTxFrame(uint8_t port) {
-  if (counter <=3) {
-    appDataSize = 1;
-    appData[0] = ledState ? 0x0B : 0x0C;
-    counter = counter+1;}
-  else {
-    appDataSize = 1;
-    appData[0] = readBattery();
-    counter = 0;
+ * Initial device setup.
+**/
+void setup() {
+  // Set up Serial
+  Serial.begin(115200);
+
+  Mcu.begin(HELTEC_BOARD, SLOW_CLK_TPYE);
+  while (!Serial) {
+    delay(10);
+  }
+  analogReadResolution(12); // 12-bit ADC
+  analogSetAttenuation(ADC_11db); // 0-3.3V range
+
+  // Set up pins
+  pinMode(LED_PIN, OUTPUT);
+  // pinMode(SOUND_PIN, OUTPUT);
+
+  // Set up GPS
+  gpsSerial.begin(115200, SERIAL_8N1, GPS_PIN1, GPS_PIN2);
+
+  // I2C
+  Wire.begin(SDA_PIN,SCL_PIN);
+  // Accelerometer setup
+  setupAccelerometer();
+  setAccelerometerThresholds(40, 10000);
+
+  // Photoresistor
+  setupPhotoresistor();
+  setPhotoresistorThreshold(1000);
+
+  // Setup Button if enough pins are available
+  // pinMode(BUTTON_PIN, INPUT_PULLUP);
+  
+  current_mode = 1; // Start in parking mode
+}
+
+/**
+ * @brief Main device loop. Manages state transitions to different modes,
+ * which are stored in the 'current_mode' variable.
+ * 0 : Active Mode \\ 1 : Parking Mode \\ 2 : Storage Mode
+**/
+void loop() {
+  while (!joinedLoRa) {
+    checkLoRa();
+  }
+  switch (current_mode) {
+    case 0:
+      current_mode = activeMode();
+      break;
+    case 1:
+      current_mode = parkingMode();
+      break;
+    case 2:
+      current_mode = storageMode();
+      break;
   }
 }
+
 /**
- * Handles downlink messages received from the network server.
+ * @brief Active Mode, turns LED on/off depending on light detected, turns accelerometer on. 
+ * Plays a buzzer when battery level is critical. Will switch to Parking Mode if no movement has been detected
+**/
+int activeMode() {
+  // Initialize Active Mode //
+  Serial.println("Entering Active Mode");
+
+  digitalWrite(LED_PIN, LOW); // initially turning off LED
+  ledState = false;
+  setupAccelerometer();
+
+  // Send current mode info via uplink
+  send_mode();
+
+  active = true;
+  parked = false;
+
+  // State tracking variables
+  bool movement = true;
+  bool countingDown = false;
+  unsigned long countdownStart = 0;
+  unsigned long lastMovementCheck = 0;
+
+  // Main loop in Active Mode //
+  while (active) {
+
+    // Check if it was interrupted by downlink
+    if (interrupted){
+      interrupted = false;
+      return current_mode;
+    }
+
+    // Always check LoRa
+    checkLoRa();
+
+    // Critical battery warning
+    float battery = readBattery();
+    static unsigned long lastWarningAct = 0;
+    if (battery <= 20.0 && millis() - lastWarningAct > 60 * 1000) { 
+      playCriticalBatteryWarning();
+      lastWarningAct = millis();
+    }
+
+    // Light detection
+    bool lightDetected = checkLightThreshold(-30); //the argument is not used
+    digitalWrite(LED_PIN, lightDetected ? LOW : HIGH);
+    ledState = !lightDetected;
+
+    // Movement detection
+    if (millis() - lastMovementCheck >= 2000) { // Check every 2 seconds
+      lastMovementCheck = millis();
+      movement = isMovingNow();
+      Serial.println(movement);
+
+      if (!movement && !countingDown) {
+        Serial.println("No movement detected. Starting 15s countdown.");
+        countdownStart = millis();
+        countingDown = true;
+      } else if (movement && countingDown) {
+        Serial.println("Movement resumed. Cancelling countdown.");
+        countingDown = false;
+      }
+    }
+    
+    // Handle countdown
+    if (countingDown && (millis() - countdownStart >= 15000)) { // after 15 sec
+      Serial.println("No movement after 15 seconds. Switching to Parking Mode.");
+      current_mode = 1;
+      return current_mode; // Switch mode
+    }
+  }
+  return current_mode;
+}
+
+/**
+* @brief Parking Mode, turns LED off and Accelerometer on. Switches to active mode if movement is detected. 
+*/
+int parkingMode() {
+  // Initialize Parking Mode //
+  Serial.println("Entering Parking Mode");
+
+  digitalWrite(LED_PIN, LOW); // initially turning off LED
+  ledState = false;
+  setupAccelerometer();
+
+  // Send current mode info via uplink
+  send_mode();
+
+  active = false;
+  parked = true;
+
+  unsigned long lastMovementCheck = 0;
+
+  // Main loop in Parking Mode //
+  while (parked) {  
+
+    // Check if it was interrupted by downlink message
+    if (interrupted){
+      interrupted = false;
+      return current_mode;
+    }
+
+    checkLoRa();
+
+    // Check for movement every 2 seconds
+    if (millis() - lastMovementCheck >= 2000) {
+      lastMovementCheck = millis();
+      if (isMovingNow()) {
+        Serial.println("Movement detected. Switching to Active Mode.");
+        current_mode = 0;
+        return current_mode;
+      }
+    }
+  }
+  return current_mode;
+}
+
+/**
+* @brief Storage Mode, turns LED and Accelerometer off. ONLY switches 
+* modes if specified from app. 
+*/
+int storageMode() {
+  // Initialize Storage Mode //
+  Serial.println("Entering Storage Mode");
+
+  digitalWrite(LED_PIN, LOW); //turning off LED
+  ledState = false;
+  turnOffAccelerometer();
+
+  // Send current mode info via uplink (even though it is kinda unnecessary)
+  send_mode();
+  
+  active = false;
+  parked = false;
+
+  // Main loop in Storage Mode //
+  while (!active && !parked) {
+    if (interrupted){
+      interrupted = false;
+      return current_mode;
+    }
+    checkLoRa();
+  }
+  return current_mode;
+}
+
+// #################################### //
+// ########## LORA FUNCTIONS ########## //
+// #################################### //
+
+/**
+ * @brief Handles downlink messages received from the network server.
  * Recognizes and processes remote commands for mode switching or GPS request.
  */
 void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
@@ -135,10 +324,6 @@ void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
         Serial.println("Command recieved: storageMode");
         current_mode = 2; // storageMode
         interrupted = true;
-        Serial.print("mode: "); 
-        Serial.println(current_mode);
-        Serial.print("Interrupted? "); 
-        Serial.println(interrupted);
         break;
 
       case 0x05:
@@ -154,204 +339,11 @@ void downLinkDataHandle(McpsIndication_t *mcpsIndication) {
     }
   }
 }
+
 /**
- * Initial device setup.
+ * @brief Function for sending LoRa messages. Also the
+ * one used for initializing communication to LoRa
  */
-void setup() {
-  // Set up Serial
-  Serial.begin(115200);
-
-  Mcu.begin(HELTEC_BOARD, SLOW_CLK_TPYE);
-  while (!Serial) {
-    delay(10);
-  }
-  analogReadResolution(12); // 12-bit ADC
-  analogSetAttenuation(ADC_11db); // 0-3.3V range
-
-  // Set up pins
-  pinMode(LED_PIN, OUTPUT);
-  // pinMode(SOUND_PIN, OUTPUT);
-
-  // Set up GPS
-  gpsSerial.begin(115200, SERIAL_8N1, GPS_PIN1, GPS_PIN2);
-
-  // I2C
-  Wire.begin(SDA_PIN,SCL_PIN);
-  // Accelerometer
-  setupAccelerometer();
-  setAccelerometerThresholds(50, 10000);
-
-  // Photoresistor
-  setupPhotoresistor();
-  setPhotoresistorThreshold(500);
-
-  // Setup Accelerometer (if necessary)
-  // setupAccelerometer();
-
-  // Setup Button if needed
-  // pinMode(BUTTON_PIN, INPUT_PULLUP); // Example if using a physical button
-  
-  current_mode = 1; // Start in parking mode
-}
-
-/**
- * @brief Main device loop. Manages state transitions to different modes,
- * which are stored in the 'current_mode' variable.
- * 0 : Active Mode \\ 1 : Parking Mode \\ 2 : Storage Mode
-**/
-void loop() {
-  while (!joinedLoRa) {
-    checkLoRa();
-  }
-  switch (current_mode) {
-    case 0:
-      current_mode = activeMode();
-      break;
-    case 1:
-      current_mode = parkingMode();
-      break;
-    case 2:
-      current_mode = storageMode();
-      break;
-  }
-}
-
-/**
-* @brief Active Mode, turns LED on/off depending on light detected, turns accelerometer on. 
-* Also plays a buzzer when battery level is critical. Will switch to Parking Mode
-* if no movement has been detected for 30 sec
-*/
-int activeMode() {
-  // Initialize Active Mode //
-  Serial.println("Entering Active Mode");
-
-  digitalWrite(LED_PIN, LOW); // initially turning off LED
-  ledState = false;
-  setupAccelerometer();
-
-  // send_mode();
-  active = true;
-  parked = false;
-
-  // Main loop in Active Mode //
-  while (active) {
-
-    // Check if it was interrupted by downlink message
-    if (interrupted){
-      interrupted = false;
-      return current_mode;
-    }
-    checkLoRa();
-
-    // Critical battery warning
-    float battery = readBattery();
-    if (battery <= 20.0) { 
-      static unsigned long lastWarningAct = 0;
-      if (millis() - lastWarningAct > 60 * 1000) { // every 60 sec
-        playCriticalBatteryWarning();
-        lastWarningAct = millis();
-      }
-    }
-
-    // Light detection
-    bool lightDetected = checkLightThreshold(-30); //the argument is not used - but as git might incur merge conflicts, we decide to leave it unremoved from the function declaration/definition
-    if (lightDetected) {
-      // Serial.print("TOO MUCH LIGHT:"); Serial.println(readPhotoresistor());
-      digitalWrite(LED_PIN, LOW);
-    } else {
-      // Serial.print("TOO LITTLE LIGHT:"); Serial.println(readPhotoresistor());
-      digitalWrite(LED_PIN, HIGH);
-      ledState = true;
-    }
-
-    // Movement detection
-    bool movement = isMovingNow();
-    if (!movement) {
-      Serial.println("No movement detected. Starting countdown.");
-      unsigned long countdownStart = millis();
-      
-      while (millis() - countdownStart < 15000) { // 30s countdown, checking every 3 sec
-        movement = isMovingNow();
-        if (movement) {
-          Serial.println("Movement detected, resetting active mode.");
-          break;
-        }
-      }
-      if (!movement) {
-        Serial.println("No movement after countdown. Switching to Parking Mode.");
-        current_mode = 1; // Switching to parking mode
-        return current_mode;
-      }
-    }
-  }
-  return current_mode;
-}
-
-/**
-* @brief Parking Mode, turns LED off and Accelerometer on. Switches to active mode if movement is detected. 
-*/
-int parkingMode() {
-  // Initialize Parking Mode //
-  Serial.println("Entering Parking Mode");
-
-  digitalWrite(LED_PIN, LOW); // initially turning off LED
-  ledState = false;
-  setupAccelerometer();
-
-  // send_mode();
-  active = false;
-  parked = true;
-
-  // Main loop in Parking Mode //
-  while (parked) {  
-
-    // Check if it was interrupted by downlink message
-    if (interrupted){
-      interrupted = false;
-      return current_mode;
-    }
-
-    checkLoRa();
-
-    if (isMovingNow()) {
-      Serial.println("Movement detected. Switching to Active Mode.");
-      current_mode = 0;
-      return current_mode;
-    }
-    // Serial.println("CHECKING LORA FROM PARKING...");
-    // checkLoRa();
-    // delay(2000); // every 3 sec
-  }
-  return current_mode;
-}
-
-/**
-* @brief Storage Mode, turns LED and Accelerometer off. ONLY switches modes if specified from app. 
-*/
-int storageMode() {
-  // Initialize Storage Mode //
-  Serial.println("Entering Storage Mode");
-
-  digitalWrite(LED_PIN, LOW); //turning off LED
-  ledState = false;
-  turnOffAccelerometer();
-  
-  active = false;
-  parked = false;
-
-  // Main loop in Storage Mode //
-  while (!active && !parked) {
-    if (interrupted){
-      interrupted = false;
-      return current_mode;
-    }
-    checkLoRa();
-  }
-  return current_mode;
-}
-
-////// HELPER FUNCTIONS //////
-
 void checkLoRa(){
   unsigned long currentMillis = millis();
   switch (deviceState) {
@@ -436,6 +428,39 @@ void checkLoRa(){
   }
 }
 
+/**
+ * Prepares the application payload for regular transmissions.
+ * Alternates between sending LED state and battery level.
+ */
+static void prepareTxFrame(uint8_t port) {
+  if (counter <=3) {
+    appDataSize = 1;
+    appData[0] = ledState ? 0x0B : 0x0C;
+    counter = counter+1;}
+  else {
+    appDataSize = 1;
+    appData[0] = readBattery();
+    counter = 0;
+  }
+}
+
+// ######################################### //
+// ######### LORA HELPER FUNCTIONS ######### //
+// ######################################### //
+
+/**
+ * helper function to make the board able to send data of the current mode via uplink 
+ */
+void send_mode() {
+  appDataSize = 1;
+  appData[0] = req_mod();
+  LoRaWAN.send();
+}
+
+/**
+ * Function that translates the current_mode value into hexadecimals, 
+ * ready to be sent through uplink via LoRa.
+ */
 float req_mod() {
   if (current_mode == 0) {
     return 0x02; //hex 02 is active
@@ -446,68 +471,6 @@ float req_mod() {
   else {
     return 0x04; //hex 04 is storage
   }
-}
-
-float readBattery() {
-  return 60.0;
-  int raw = analogRead(VOLTAGE_PIN);
-  float vPin = (raw * ADC_CORRECTION * 3.3 / 4095.0);
-  float batteryVoltage = vPin * (R1 + R2) / R2;
-  float batteryCharge = mapBatteryPercentage(batteryVoltage);
-  Serial.print("Charge: ");
-  Serial.println(batteryCharge);
-  // Serial.print("% | Raw ADC: ");
-  // Serial.print(raw);
-  // Serial.print(" | Voltage: ");
-  // Serial.println(vPin);
-  return batteryCharge;
-}
-
-float mapBatteryPercentage(float v) {
-  if (v >= 4.20) return 100.0;
-  else if (v >= 4.10) return 90.0;
-  else if (v >= 3.95) return 80.0;
-  else if (v >= 3.80) return 70.0;
-  else if (v >= 3.70) return 60.0;
-  else if (v >= 3.60) return 50.0;
-  else if (v >= 3.50) return 40.0;
-  else if (v >= 3.40) return 30.0;
-  else if (v >= 3.20) return 20.0;
-  else if (v >= 3.00) return 10.0;
-  else if (v >= 2.75) return 1.0;
-  else return 0.0;
-}
-
-void playCriticalBatteryWarning() {
-  Serial.println("Critical battery! Playing audio warning.");
-  int melody = NOTE_E6;
-  int duration = 250;
-  tone(SOUND_PIN, melody, duration);
-  delay(250);
-  tone(SOUND_PIN, melody, duration);
-}
-
-void send_mode() {
-  Serial.println("Sending mode to TTN...");
-
-  appDataSize = 1;
-  appData[0] = req_mod();
-
-  LoRaWAN.send();
-}
-
-// Encode 2 floats (lat, lon) into 8 bytes (4 bytes each, IEEE 754)
-void send_gps(float latitude, float longitude) {
-  Serial.println("Sending GPS coordinates to TTN...");
-
-  uint8_t *latPtr = (uint8_t*) &latitude;
-  uint8_t *lonPtr = (uint8_t*) &longitude;
-
-  appDataSize = 8;
-  for (int i = 0; i < 4; i++) appData[i] = latPtr[i];
-  for (int i = 0; i < 4; i++) appData[i + 4] = lonPtr[i];
-
-  LoRaWAN.send();
 }
 
 /**
@@ -533,4 +496,72 @@ void request_gps() {
   counter = 0;
 
   send_gps(fake_lat, fake_lon); //sending latitude and longitude
+}
+
+/**
+ * Function that Encode 2 floats (lat, lon) into 8 bytes (4 bytes each, IEEE 754),
+ * and sends the data through LoRa with the LoRaWAN.send() command.
+ */
+void send_gps(float latitude, float longitude) {
+  Serial.println("Sending GPS coordinates to TTN...");
+
+  uint8_t *latPtr = (uint8_t*) &latitude;
+  uint8_t *lonPtr = (uint8_t*) &longitude;
+
+  appDataSize = 8;
+  for (int i = 0; i < 4; i++) appData[i] = latPtr[i];
+  for (int i = 0; i < 4; i++) appData[i + 4] = lonPtr[i];
+
+  LoRaWAN.send();
+}
+
+// ########################################## //
+// ######### OTHER HELPER FUNCTIONS ######### //
+// ########################################## //
+
+/**
+ * Reads the battery charge on the VOLTAGE_PIN. 
+ * Returns the battery charge in percent as a float.
+ */
+float readBattery() {
+  return 60.0;
+  int raw = analogRead(VOLTAGE_PIN);
+  float vPin = (raw * ADC_CORRECTION * 3.3 / 4095.0);
+  float batteryVoltage = vPin * (R1 + R2) / R2;
+  float batteryCharge = mapBatteryPercentage(batteryVoltage);
+  Serial.print("Charge: ");
+  Serial.println(batteryCharge);
+  return batteryCharge;
+}
+
+/**
+ * Simple function that maps voltage charge to a specific percentage as a float.
+ */
+float mapBatteryPercentage(float v) {
+  if (v >= 4.20) return 100.0;
+  else if (v >= 4.10) return 90.0;
+  else if (v >= 3.95) return 80.0;
+  else if (v >= 3.80) return 70.0;
+  else if (v >= 3.70) return 60.0;
+  else if (v >= 3.60) return 50.0;
+  else if (v >= 3.50) return 40.0;
+  else if (v >= 3.40) return 30.0;
+  else if (v >= 3.20) return 20.0;
+  else if (v >= 3.00) return 10.0;
+  else if (v >= 2.75) return 1.0;
+  else return 0.0;
+}
+
+
+/**
+ * Function that uses the SOUND_PIN to play a short beep sound.
+ * To be used as a battery warning.
+ */
+void playCriticalBatteryWarning() {
+  Serial.println("Critical battery! Playing audio warning.");
+  int melody = NOTE_E6;
+  int duration = 250;
+  tone(SOUND_PIN, melody, duration);
+  delay(250);
+  tone(SOUND_PIN, melody, duration);
 }
