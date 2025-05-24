@@ -21,7 +21,7 @@ The repository is structured as follows, where communication team also has a sub
 ```
 BikeProject/
 ├── CommunicationTeam/
-    └── AndroidApp/
+|   └── AndroidApp/
 ├── HardwareTeam/
 ├── SensorTeam/
 ├── Main/
@@ -70,7 +70,7 @@ To get the android app running, you can download and extract the zip file from t
 - Has Visual (through the app) or audible warning of low-battery (<20%).
 
 ## Original Teams
-- Hardware Team   (HT) Nicklas, Pepe
+- Hardware Team         (HT) Nicklas, Pepe
 - Sensor Team           (ST) Julian, Oskar
 - Communication Team    (CT) Gea, Edoardo
 
