@@ -3,10 +3,10 @@
 #include <WiFi.h>
 #include <Wire.h>
 #include <pitches.h>
-#include <../Sensor/SENSOR_TEAM_Initial_Worksheet/accelerometer.h>
-#include <../Sensor/SENSOR_TEAM_Initial_Worksheet/photoresistor.h>
-#include <../Sensor/SENSOR_TEAM_Initial_Worksheet/accelerometer.ino>
-#include <../Sensor/SENSOR_TEAM_Initial_Worksheet/photoresistor.ino>
+#include <../SensorTeam/SENSOR_TEAM_Initial_Worksheet/accelerometer.h>
+#include <../SensorTeam/SENSOR_TEAM_Initial_Worksheet/photoresistor.h>
+#include <../SensorTeam/SENSOR_TEAM_Initial_Worksheet/accelerometer.ino>
+#include <../SensorTeam/SENSOR_TEAM_Initial_Worksheet/photoresistor.ino>
 
 #include "LoRaWan_APP.h"
 #include "HT_TinyGPS++.h"
