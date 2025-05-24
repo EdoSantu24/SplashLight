@@ -12,10 +12,12 @@ int clicks = 0;
 volatile bool flag = false;
 
 
+// In this interrupt, which is activated when 
+// clicking on the button, flag is set to true
 void IRAM_ATTR buttonISR() {
   flag = true;
 
-  // CODE FOR RESTARTING WHEN DOUBLE CLICKING (IS A BIT JANK THO)
+  // CODE FOR RESTARTING WHEN DOUBLE CLICKING (only works 50% of the time though)
   // unsigned long currentTime = millis();
 
   // if (currentTime - lastPressTime > 50) {  // Debounce (ignore very fast repeats)
@@ -45,7 +47,8 @@ void setup() {
   delay(500);
   ledOff();
 
-  esp_sleep_enable_ext1_wakeup_io(BUTTON_PIN_BITMASK(WAKEUP_GPIO), ESP_EXT1_WAKEUP_ANY_HIGH);
+  // This enables the esp to be awoken by a GPIO - in this case a button
+  esp_deep_sleep_enable_gpio_wakeup(BUTTON_PIN_BITMASK(WAKEUP_GPIO), ESP_GPIO_WAKEUP_GPIO_HIGH);
   gpio_pulldown_en((gpio_num_t)WAKEUP_GPIO);
   gpio_pullup_dis((gpio_num_t)WAKEUP_GPIO);
 
@@ -58,6 +61,8 @@ void loop() {
 }
 
 // Helper functions //
+
+// Will first blink, and then proceed to enter deep sleep mode
 void goToSleep(){
   ledOn();
   delay(250);
@@ -66,13 +71,17 @@ void goToSleep(){
   ledOn();
   delay(1000);
   ledOff();
-  while (digitalRead(BUTTON) == HIGH) {
+
+  // since the wakeup button is the same as "sleep button", 
+  // we need to wait before the button is not clicked
+  while (digitalRead(BUTTON) == HIGH) { 
     delay(50);
   }
   Serial.print("Going to sleep...");
-  esp_deep_sleep_start();  // Go to sleep on double-click
+  esp_deep_sleep_start();  // Go to deep sleep
 }
 
+// short led functions
 void ledOn() {
   digitalWrite(LED, HIGH);
 }

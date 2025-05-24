@@ -1,4 +1,3 @@
-
 // Libraries //
 
 #include <WiFi.h>
@@ -59,11 +58,12 @@ HardwareSerial gpsSerial(2);
 #define BUTTON_PIN_BITMASK(GPIO) (1ULL << GPIO)  // 2 ^ GPIO_NUMBER
 #define SDA_PIN 2
 #define SCL_PIN 9
+#define LED_PIN 19
+// Photoresistor pin 0 is also used
 
 // NOT USED PINS
 #define SOUND_PIN 45
 #define VOLTAGE_PIN 4
-#define LED_PIN 19
 #define GPS_PIN1 46
 #define GPS_PIN2 47
 // #define WIFI_PIN 21 // optional if needed to enable WiFi manually
@@ -79,7 +79,6 @@ bool parked = true;
 
 volatile int current_mode = 0; // 0 = ACTIVE MODE | 1 = PARKING MODE | 2 = STORAGE MODE
 volatile bool interrupted = false; // When interrupted by downlink this variable changes
-
 
 /**
  * Initial device setup.
@@ -106,11 +105,11 @@ void setup() {
   Wire.begin(SDA_PIN,SCL_PIN);
   // Accelerometer setup
   setupAccelerometer();
-  setAccelerometerThresholds(40, 10000);
+  setAccelerometerThresholds(30, 10000);
 
   // Photoresistor
   setupPhotoresistor();
-  setPhotoresistorThreshold(1000);
+  setPhotoresistorThreshold(500);
 
   // Setup Button if enough pins are available
   // pinMode(BUTTON_PIN, INPUT_PULLUP);
@@ -193,7 +192,6 @@ int activeMode() {
     if (millis() - lastMovementCheck >= 2000) { // Check every 2 seconds
       lastMovementCheck = millis();
       movement = isMovingNow();
-      Serial.println(movement);
 
       if (!movement && !countingDown) {
         Serial.println("No movement detected. Starting 15s countdown.");
@@ -479,7 +477,7 @@ float req_mod() {
  * @param longitude Longitude value (float)
 **/
 void request_gps() {
-  Serial.println("GPS request triggered. Getting fake coordinates...");
+  Serial.println("GPS request triggered. Sending coordinates...");
 
   float fake_lat = 55.6761;
   float fake_lon = 12.5683;
@@ -503,7 +501,6 @@ void request_gps() {
  * and sends the data through LoRa with the LoRaWAN.send() command.
  */
 void send_gps(float latitude, float longitude) {
-  Serial.println("Sending GPS coordinates to TTN...");
 
   uint8_t *latPtr = (uint8_t*) &latitude;
   uint8_t *lonPtr = (uint8_t*) &longitude;
@@ -551,7 +548,6 @@ float mapBatteryPercentage(float v) {
   else if (v >= 2.75) return 1.0;
   else return 0.0;
 }
-
 
 /**
  * Function that uses the SOUND_PIN to play a short beep sound.
