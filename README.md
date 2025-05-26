@@ -29,7 +29,7 @@ BikeProject/
 ├── LICENSE
 └── README.md
 ```
-- `CommunicationTeam/`: Contains code and documentation related to the communication aspects of the project, such as LoRaWAN and GNSS, as well as the code for the Android app as a zip file.
+- `CommunicationTeam/`: Contains code and documentation related to the communication aspects of the project, such as LoRaWAN downlink/uplink, as well as the code for the Android app as a zip file.
 - `HardwareTeam/`: Contains code related to some of the hardware components that were required and tested for the final prototype. It also includes an example of how to use **DeepSleep** mode on the ESP32-C3, that in the end was not used in the final prototype.
 - `SensorTeam/`: Contains code and documentation related to the sensors used in the project, such as the accelerometer and photoresistor.
 - `Main/`: ***Contains the main code for the Splash Light***, making use of code from the Hardware, Sensor, and Communication teams. This is the code that will be uploaded to the ESP32-C3 microcontroller.
