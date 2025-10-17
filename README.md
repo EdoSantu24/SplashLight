@@ -72,7 +72,7 @@ To get the android app running, you can download and extract the zip file from t
 ## Original Teams
 - Hardware Team         (HT) Nicklas, Pepe
 - Sensor Team           (ST) Julian, Oskar
-- Communication Team    (CT) Gea, Edoardo
+- Communication Team    (CT) Gea, Edoardo (My contribution)
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
