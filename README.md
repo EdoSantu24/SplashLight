@@ -18,7 +18,7 @@ For this smart light project, the following modules are required:
 - Physical button
 - Resistors
 
-Below you can see the initial design and the final 3D-printed prototype.
+Below you can see the final 3D-printed prototype.
 
 <table>
   <tr>
