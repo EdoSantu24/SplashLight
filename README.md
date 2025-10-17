@@ -1,4 +1,5 @@
 # Splash Light - Smart Bike Light Project
+> **Note:** This is a forked version of a collaborative university project. The original repository can be found [https://github.com/Feen-X/SplashLight](https://github.com/Feen-X/SplashLight). My specific contributions are detailed at the bottom of this document.
 Welcome to the Splash Light GitHub repository! This project is a collaborative effort to create a smart bike light system that turns automatically on/off, as well as enhancing safety for cyclists. Below you will find an overview of the project, as well as how to get started with the code and hardware.
 
 ## Project Overview
@@ -20,7 +21,7 @@ Below you can see the initial design and the final 3D-printed prototype.
 
 <table>
   <tr>
-    <td align="center"><strong>Initial Design</strong></td>
+    <td align="center"><strong>Sensors and Wiring</strong></td>
     <td align="center"><strong>Final Product</strong></td>
   </tr>
   <tr>
@@ -86,6 +87,12 @@ To get the android app running, you can download and extract the zip file from t
 - Hardware Team         (HT) Nicklas, Pepe
 - Sensor Team           (ST) Julian, Oskar
 - Communication Team    (CT) Gea, Edoardo (My contribution)
+
+### My Specific Contributions
+As a member of the **Communication Team**, I was responsible for:
+- Implementing the **LoRaWAN communication protocol** for sending and receiving data between the bike light and the mobile application over the TTN network.
+- Developing the logic for transmitting sensor data, such as **geolocation and battery status**, over the network (using MQTT broker and TTN connected trough a backend on a VM in the cloud running Node.js).
+- Collaborating on the development and integration of the companion **Android application** used to control the device's operational modes and monitoring.
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
