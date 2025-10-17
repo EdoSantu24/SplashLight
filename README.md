@@ -1,5 +1,6 @@
 # Splash Light - Smart Bike Light Project
 > **Note:** This is a forked version of a collaborative university project. The original repository can be found [https://github.com/Feen-X/SplashLight](https://github.com/Feen-X/SplashLight). My specific contributions are detailed at the bottom of this document.
+
 Welcome to the Splash Light GitHub repository! This project is a collaborative effort to create a smart bike light system that turns automatically on/off, as well as enhancing safety for cyclists. Below you will find an overview of the project, as well as how to get started with the code and hardware.
 
 ## Project Overview
