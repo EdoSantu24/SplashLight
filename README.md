@@ -24,8 +24,8 @@ Below you can see the initial design and the final 3D-printed prototype.
     <td align="center"><strong>Final Product</strong></td>
   </tr>
   <tr>
-    <td><img src="./TeamDocuments/Board_with_GPS.png" alt="Hardware design without case" width="350"></td>
-    <td><img src="./TeamDocuments/SplashLight1_0.jpg" alt="Final 3D Printed Product" width="350"></td>
+    <td><img src="./TeamDocuments/Board_with_GPS.jpg" alt="Hardware design without case" width="350"></td>
+    <td><img src="./TeamDocuments/SplashLight1_0.png" alt="Final 3D Printed Product" width="350"></td>
   </tr>
 </table>
 
